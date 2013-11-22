@@ -1,3 +1,3 @@
-Experimental project for Fusion. 
+Fusion. 
 
-The features developeed here are based on some of the intentions for OpenStack Heater (Heat)
+Experimental project space, for implementing some of the intentions for the OpenStack Heater project.
