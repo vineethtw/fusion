@@ -125,6 +125,22 @@ auth_password_opts = [
                        'multi_cloud is enabled. At least one endpoint needs '
                        'to be specified.'))]
 
+github_group = cfg.OptGroup('github')
+github_opts = [
+    cfg.StrOpt('username',
+               default="not_defined",
+               help="Github Username"),
+    cfg.StrOpt('password',
+               default="not_defined",
+               help="Github Password"),
+    cfg.StrOpt('repository_name',
+               default="",
+               help="Github repository where templates are stored"),
+    cfg.StrOpt('template_catalog_path',
+               default="",
+               help="Catalog path")
+]
+
 cfg.CONF.register_opts(engine_opts)
 cfg.CONF.register_opts(service_opts)
 cfg.CONF.register_opts(rpc_opts)
@@ -132,6 +148,7 @@ cfg.CONF.register_group(paste_deploy_group)
 cfg.CONF.register_opts(paste_deploy_opts, group=paste_deploy_group)
 cfg.CONF.register_group(auth_password_group)
 cfg.CONF.register_opts(auth_password_opts, group=auth_password_group)
+cfg.CONF.register_opts(github_opts, group=github_group)
 
 
 def _get_deployment_flavor():

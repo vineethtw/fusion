@@ -16,3 +16,9 @@ bind_host=127.0.0.1
 
 # The port on which the server will listen. (integer value)
 bind_port=8004
+
+[github]
+username = ""
+password = ""
+repository_name = "heat-templates"
+template_catalog_path = "catalogs/prod_catalog.json"
