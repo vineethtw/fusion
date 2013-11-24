@@ -1,4 +1,7 @@
+import base64 as base64
+
 from fusion.common import wsgi
+import fusion.api.templates.template_manager as managers
 
 
 class TemplateController(object):
@@ -8,13 +11,15 @@ class TemplateController(object):
     """
 
     def __init__(self, options):
-        self.options = options
+        self._options = options
+        self._manager = managers.GithubManager(options)
 
-    def show(self, req, template_id):
+    def get_catalog(self, req):
         """
         Gets template
         """
-        return "foo"
+        catalog = self._manager.get_catalog(as_json=True)
+        return catalog
 
 
 class TemplateSerializer(object):
@@ -26,5 +31,6 @@ def create_resource(options):
     Templates resource factory method.
     """
     deserializer = wsgi.JSONRequestDeserializer()
-    serializer = TemplateSerializer()
+    serializer = wsgi.JSONResponseSerializer
     return wsgi.Resource(TemplateController(options), deserializer, serializer)
+

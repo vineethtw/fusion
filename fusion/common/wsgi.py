@@ -146,6 +146,7 @@ def get_socket(conf, default_port):
         except socket.error as err:
             if err.args[0] != errno.EADDRINUSE:
                 raise
+            print ("Address already in use (%s:%s), trying again" % bind_addr)
             eventlet.sleep(0.1)
     if not sock:
         raise RuntimeError(_("Could not bind to %(bind_addr)s"
