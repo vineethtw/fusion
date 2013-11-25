@@ -1,5 +1,7 @@
 import json
+
 from fusion.classes import ExtensibleSequence, ExtensibleDict
+
 
 class TemplateCatalog(ExtensibleSequence):
     def __init__(self, *args, **kwargs):
@@ -20,6 +22,7 @@ class TemplateCatalog(ExtensibleSequence):
 
     def size(self):
         return self.__len__()
+
 
 class TemplateCatalogEntry(ExtensibleDict):
     def __init__(self, *args, **kwargs):

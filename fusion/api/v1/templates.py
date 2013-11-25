@@ -1,7 +1,5 @@
-import base64 as base64
-
 from fusion.common import wsgi
-import fusion.api.templates.template_manager as managers
+from fusion.api.templates import template_manager as managers
 
 
 class TemplateController(object):
@@ -16,10 +14,16 @@ class TemplateController(object):
 
     def get_catalog(self, req):
         """
+        Gets template catalog
+        """
+        catalog = self._manager.get_catalog()
+        return catalog
+
+    def get_templates(self, req):
+        """
         Gets template
         """
-        catalog = self._manager.get_catalog(as_json=True)
-        return catalog
+        return self._manager.get_templates()
 
 
 class TemplateSerializer(object):

@@ -1,5 +1,7 @@
 import unittest
+
 from fusion.api.templates import TemplateCatalogEntry, TemplateCatalog
+
 
 class TemplateTests(unittest.TestCase):
 

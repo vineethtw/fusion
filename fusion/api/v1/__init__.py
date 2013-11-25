@@ -19,3 +19,7 @@ class API(wsgi.Router):
                                     "/templates/get_catalog",
                                     action="get_catalog",
                                     conditions={'method': 'GET'})
+            template_mapper.connect("get_templates",
+                                    "/templates",
+                                    action="get_templates",
+                                    conditions={'method': 'GET'})
