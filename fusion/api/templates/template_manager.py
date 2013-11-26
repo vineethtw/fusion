@@ -4,6 +4,8 @@ import json
 import requests
 import yaml
 
+from fusion.common.cache import FileSystemCache
+
 
 class TemplateManager(object):
     pass
