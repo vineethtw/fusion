@@ -23,7 +23,7 @@ class TemplateController(object):
         """
         Gets template
         """
-        return self._manager.get_templates()
+        return self._manager.get_templates().__str__()
 
 
 class TemplateSerializer(object):

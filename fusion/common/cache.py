@@ -54,9 +54,12 @@ class FileSystemCache(Cache):
                 return
         try:
             with open(self._cache_file(cache_key), 'w') as cache:
-                cache.write(json.dumps(data))
+                cache.write(json.dumps(data, default=json_handler))
         except IOError:
             logger.warn("Error updating disk cache", exc_info=True)
 
     def _cache_file(self, cache_key):
         return os.path.join(self._cache_root, ".%s_cache" % cache_key)
+
+def json_handler(obj):
+    return obj.isoformat() if hasattr(obj, 'isoformat') else obj
