@@ -1,6 +1,8 @@
 import json
 import os
 import time
+import datetime
+import calendar
 
 from fusion.openstack.common import log as logging
 from fusion.common.timeutils import json_handler
@@ -42,10 +44,20 @@ class InMemoryCache(Cache):
     def try_cache(self, cache_key):
         if cache_key not in self._cache:
             return None
-        return self._cache[cache_key]
+        if self._expired(cache_key):
+            return None
+        return self._cache[cache_key]['content']
 
     def update_cache(self, cache_key, value):
-        self._cache[cache_key] = value
+        self._cache[cache_key] = {
+            'content': value,
+            'created': calendar.timegm(time.gmtime())
+        }
+
+    def _expired(self, cache_key):
+        if cache_key in self._cache:
+            cache_last_update_time = self._cache[cache_key]['created']
+            return time.time() - cache_last_update_time >= self.max_age
 
 
 class FileSystemCache(Cache):
