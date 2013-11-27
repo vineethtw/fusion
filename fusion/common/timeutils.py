@@ -40,3 +40,7 @@ def parse_isoduration(duration):
     t += int(result.group(3)) if result.group(3) else 0
 
     return t
+
+
+def json_handler(obj):
+    return obj.isoformat() if hasattr(obj, 'isoformat') else obj

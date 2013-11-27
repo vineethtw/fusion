@@ -623,7 +623,7 @@ class Resource(object):
                           {'code': err.code, 'explanation': err.explanation})
             http_exc = translate_exception(err, request.best_match_language())
             raise exception.HTTPExceptionDisguise(http_exc)
-        except exception.HeatException as err:
+        except exception.FusionException as err:
             log_exception(err, sys.exc_info())
             raise translate_exception(err, request.best_match_language())
         except Exception as err:

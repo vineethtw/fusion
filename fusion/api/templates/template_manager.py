@@ -4,15 +4,25 @@ import json
 import requests
 import yaml
 
-from fusion.common.cache import FileSystemCache
+from eventlet import greenpool
+
+from fusion.common.cache import FileSystemCache as file_cache
+from fusion.openstack.common import log as logging
+
+logger = logging.getLogger(__name__)
 
 
 class TemplateManager(object):
-    pass
+    def get_catalog(self):
+        logger.warn("TemplateManager.get_catalog called but was not "
+                    "implemented")
+
+    def get_templates(self):
+        logger.warn("TemplateManager.get_templates called but was not "
+                    "implemented")
 
 
 class GithubManager(TemplateManager):
-
     def __init__(self, options):
         self._options = options.github
         self._cache_options = options.cache
@@ -30,15 +40,25 @@ class GithubManager(TemplateManager):
         decoded_content = base64.b64decode(file_content)
         return decoded_content
 
+    @file_cache()
     def get_templates(self):
         templates = {}
         catalog = self.get_catalog()
         catalog = json.loads(catalog)
 
+        pool = greenpool.GreenPile()
         for template in catalog['templates']:
-            response = requests.get(template.get('url'))
-            templates[template.get('id')] = yaml.load(response.content)
+            pool.spawn(self._get_template, template.get('id'),
+                       template.get('url'))
+
+        for result in pool:
+            templates.update(result)
+
         return templates
+
+    def _get_template(self, template_id, template_url):
+        response = requests.get(template_url)
+        return {template_id: yaml.load(response.content)}
 
     def _get_user(self):
         return self._client.get_user()
