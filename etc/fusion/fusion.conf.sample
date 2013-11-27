@@ -22,3 +22,6 @@ username = ""
 password = ""
 repository_name = "heat-templates"
 template_catalog_path = "catalogs/prod_catalog.json"
+
+[cache]
+cache_root = "/Users/vineethv/code/cache"

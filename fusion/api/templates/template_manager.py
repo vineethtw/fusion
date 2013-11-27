@@ -15,6 +15,7 @@ class GithubManager(TemplateManager):
 
     def __init__(self, options):
         self._options = options.github
+        self._cache_options = options.cache
         self._client = self.get_client()
 
     def get_client(self):

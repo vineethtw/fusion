@@ -141,6 +141,13 @@ github_opts = [
                help="Catalog path")
 ]
 
+cache_group = cfg.OptGroup('cache')
+cache_opts = [
+    cfg.StrOpt('cache_root',
+               default="cache_root was not defined!",
+               help="Location for cache folder")
+]
+
 cfg.CONF.register_opts(engine_opts)
 cfg.CONF.register_opts(service_opts)
 cfg.CONF.register_opts(rpc_opts)
@@ -149,6 +156,7 @@ cfg.CONF.register_opts(paste_deploy_opts, group=paste_deploy_group)
 cfg.CONF.register_group(auth_password_group)
 cfg.CONF.register_opts(auth_password_opts, group=auth_password_group)
 cfg.CONF.register_opts(github_opts, group=github_group)
+cfg.CONF.register_opts(cache_opts, group=cache_group)
 
 
 def _get_deployment_flavor():
