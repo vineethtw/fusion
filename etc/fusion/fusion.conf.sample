@@ -24,4 +24,5 @@ repository_name = "heat-templates"
 template_catalog_path = "catalogs/prod_catalog.json"
 
 [cache]
-cache_root = "/Users/vineethv/code/cache"
+default_timeout=3600
+cache_root="/var/local/fusion/cache"

@@ -91,7 +91,7 @@ def wrap_exception(notifier=None, publisher_id=None, event_type=None,
     return inner
 
 
-class HeatException(Exception):
+class FusionException(Exception):
     """Base Heat Exception
 
     To correctly use this class, inherit from it and define
@@ -124,182 +124,6 @@ class HeatException(Exception):
         return unicode(self.message)
 
 
-class MissingCredentialError(HeatException):
-    msg_fmt = _("Missing required credential: %(required)s")
-
-
-class BadAuthStrategy(HeatException):
-    msg_fmt = _("Incorrect auth strategy, expected \"%(expected)s\" but "
-                "received \"%(received)s\"")
-
-
-class AuthBadRequest(HeatException):
-    msg_fmt = _("Connect error/bad request to Auth service at URL %(url)s.")
-
-
-class AuthUrlNotFound(HeatException):
-    msg_fmt = _("Auth service at URL %(url)s not found.")
-
-
-class AuthorizationFailure(HeatException):
-    msg_fmt = _("Authorization failed.")
-
-
-class NotAuthenticated(HeatException):
-    msg_fmt = _("You are not authenticated.")
-
-
-class Forbidden(HeatException):
-    msg_fmt = _("You are not authorized to complete this action.")
-
-
-#NOTE(bcwaldon): here for backwards-compatability, need to deprecate.
-class NotAuthorized(Forbidden):
-    msg_fmt = _("You are not authorized to complete this action.")
-
-
-class Invalid(HeatException):
-    msg_fmt = _("Data supplied was not valid: %(reason)s")
-
-
-class AuthorizationRedirect(HeatException):
-    msg_fmt = _("Redirecting to %(uri)s for authorization.")
-
-
-class ClientConfigurationError(HeatException):
-    msg_fmt = _("There was an error configuring the client.")
-
-
-class RequestUriTooLong(HeatException):
-    msg_fmt = _("The URI was too long.")
-
-
-class ServerError(HeatException):
-    msg_fmt = _("The request returned 500 Internal Server Error"
-                "\n\nThe response body:\n%(body)s")
-
-
-class MaxRedirectsExceeded(HeatException):
-    msg_fmt = _("Maximum redirects (%(redirects)s) was exceeded.")
-
-
-class InvalidRedirect(HeatException):
-    msg_fmt = _("Received invalid HTTP redirect.")
-
-
-class NoServiceEndpoint(HeatException):
-    msg_fmt = _("Response from Keystone does not contain a Heat endpoint.")
-
-
-class RegionAmbiguity(HeatException):
-    msg_fmt = _("Multiple 'image' service matches for region %(region)s. This "
-                "generally means that a region is required and you have not "
-                "supplied one.")
-
-
-class UserParameterMissing(HeatException):
-    msg_fmt = _("The Parameter (%(key)s) was not provided.")
-
-
-class UnknownUserParameter(HeatException):
-    msg_fmt = _("The Parameter (%(key)s) was not defined in template.")
-
-
-class InvalidTemplateParameter(HeatException):
-    msg_fmt = _("The Parameter (%(key)s) has no attributes.")
-
-
-class InvalidTemplateAttribute(HeatException):
-    msg_fmt = _("The Referenced Attribute (%(resource)s %(key)s)"
-                " is incorrect.")
-
-
-class InvalidTemplateReference(HeatException):
-    msg_fmt = _("The specified reference \"%(resource)s\" (in %(key)s)"
-                " is incorrect.")
-
-
-class UserKeyPairMissing(HeatException):
-    msg_fmt = _("The Key (%(key_name)s) could not be found.")
-
-
-class FlavorMissing(HeatException):
-    msg_fmt = _("The Flavor ID (%(flavor_id)s) could not be found.")
-
-
-class ImageNotFound(HeatException):
-    msg_fmt = _("The Image (%(image_name)s) could not be found.")
-
-
-class PhysicalResourceNameAmbiguity(HeatException):
-    msg_fmt = _(
-        "Multiple physical resources were found with name (%(name)s).")
-
-
-class InvalidTenant(HeatException):
-    msg_fmt = _("Searching Tenant %(target)s "
-                "from Tenant %(actual)s forbidden.")
-
-
-class StackNotFound(HeatException):
-    msg_fmt = _("The Stack (%(stack_name)s) could not be found.")
-
-
-class StackExists(HeatException):
-    msg_fmt = _("The Stack (%(stack_name)s) already exists.")
-
-
-class StackValidationFailed(HeatException):
-    msg_fmt = _("%(message)s")
-
-
-class ResourceNotFound(HeatException):
-    msg_fmt = _("The Resource (%(resource_name)s) could not be found "
-                "in Stack %(stack_name)s.")
-
-
-class ResourceTypeNotFound(HeatException):
-    msg_fmt = _("The Resource Type (%(type_name)s) could not be found.")
-
-
-class ResourceNotAvailable(HeatException):
-    msg_fmt = _("The Resource (%(resource_name)s) is not available.")
-
-
-class PhysicalResourceNotFound(HeatException):
-    msg_fmt = _("The Resource (%(resource_id)s) could not be found.")
-
-
-class WatchRuleNotFound(HeatException):
-    msg_fmt = _("The Watch Rule (%(watch_name)s) could not be found.")
-
-
-class ResourceFailure(HeatException):
-    msg_fmt = _("%(exc_type)s: %(message)s")
-
-    def __init__(self, exception, resource, action=None):
-        if isinstance(exception, ResourceFailure):
-            exception = getattr(exception, 'exc', exception)
-        self.exc = exception
-        self.resource = resource
-        self.action = action
-        exc_type = type(exception).__name__
-        super(ResourceFailure, self).__init__(exc_type=exc_type,
-                                              message=str(exception))
-
-
-class NotSupported(HeatException):
-    msg_fmt = _("%(feature)s is not supported.")
-
-
-class ResourcePropertyConflict(HeatException):
-    msg_fmt = _('Cannot define the following properties at the same time: %s.')
-
-    def __init__(self, *args):
-        self.msg_fmt = self.msg_fmt % ", ".join(args)
-        super(ResourcePropertyConflict, self).__init__()
-
-
 class HTTPExceptionDisguise(Exception):
     """Disguises HTTP exceptions so they can be handled by the webob fault
     application in the wsgi pipeline.
@@ -308,11 +132,6 @@ class HTTPExceptionDisguise(Exception):
     def __init__(self, exception):
         self.exc = exception
         self.tb = sys.exc_info()[2]
-
-
-class EgressRuleNotAllowed(HeatException):
-    msg_fmt = _("Egress rules are only allowed when "
-                "Neutron is used and the 'VpcId' property is set.")
 
 
 class Error(Exception):
@@ -324,13 +143,6 @@ class NotFound(Error):
     pass
 
 
-class InvalidContentType(HeatException):
+class InvalidContentType(FusionException):
     msg_fmt = "Invalid content type %(content_type)s"
 
-
-class RequestLimitExceeded(HeatException):
-    msg_fmt = _('Request limit exceeded: %(message)s')
-
-
-class StackResourceLimitExceeded(HeatException):
-    msg_fmt = _('Maximum resources per stack exceeded.')
