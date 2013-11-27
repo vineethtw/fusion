@@ -20,7 +20,8 @@ class GithubManager(TemplateManager):
 
     def get_client(self):
         return github.Github(self._options.username,
-                             self._options.password)
+                             self._options.password,
+                             user_agent=self._options.username)
 
     def get_catalog(self):
         repo = self._get_repository()
