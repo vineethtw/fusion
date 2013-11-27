@@ -34,6 +34,20 @@ class Cache(object):
                     "but was not implemented", cache_key)
 
 
+class InMemoryCache(Cache):
+    def __init__(self, timeout=None):
+        self._cache = {}
+        super(InMemoryCache, self).__init__(timeout)
+
+    def try_cache(self, cache_key):
+        if cache_key not in self._cache:
+            return None
+        return self._cache[cache_key]
+
+    def update_cache(self, cache_key, value):
+        self._cache[cache_key] = value
+
+
 class FileSystemCache(Cache):
     def __init__(self, timeout=None):
         self._cache_root = cfg.CONF.cache.cache_root
