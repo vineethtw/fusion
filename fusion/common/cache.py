@@ -1,6 +1,8 @@
 import json
 import os
 import time
+import datetime
+import calendar
 
 from fusion.openstack.common import log as logging
 from fusion.common.timeutils import json_handler
@@ -11,11 +13,14 @@ logger = logging.getLogger(__name__)
 
 class Cache(object):
     def __init__(self, timeout):
-        self.max_age = timeout if timeout else cfg.CONF.cache.default_timeout
+        self.max_age = timeout if timeout else self.get_config(
+            'default_timeout')
 
     def __call__(self, func):
-        cache_key = func.__name__
+        if not self.caching_enabled():
+            return func
 
+        cache_key = func.__name__
         def wrapped_f(*args, **kwargs):
             result = self.try_cache(cache_key)
             if not result:
@@ -24,6 +29,14 @@ class Cache(object):
             return result
 
         return wrapped_f
+
+    def get_config(self, name):
+        if not self.caching_enabled():
+            return None
+        return getattr(cfg.CONF.cache, name)
+
+    def caching_enabled(self):
+        return 'cache' in cfg.CONF
 
     def try_cache(self, cache_key):
         logger.warn("Cache.try_cache called with cache_key %s, but was not "
@@ -34,9 +47,33 @@ class Cache(object):
                     "but was not implemented", cache_key)
 
 
+class InMemoryCache(Cache):
+    def __init__(self, timeout=None):
+        self._cache = {}
+        super(InMemoryCache, self).__init__(timeout)
+
+    def try_cache(self, cache_key):
+        if cache_key not in self._cache:
+            return None
+        if self._expired(cache_key):
+            return None
+        return self._cache[cache_key]['content']
+
+    def update_cache(self, cache_key, value):
+        self._cache[cache_key] = {
+            'content': value,
+            'created': calendar.timegm(time.gmtime())
+        }
+
+    def _expired(self, cache_key):
+        if cache_key in self._cache:
+            cache_last_update_time = self._cache[cache_key]['created']
+            return time.time() - cache_last_update_time >= self.max_age
+
+
 class FileSystemCache(Cache):
     def __init__(self, timeout=None):
-        self._cache_root = cfg.CONF.cache.cache_root
+        self._cache_root = self.get_config('cache_root')
         super(FileSystemCache, self).__init__(timeout)
 
     def try_cache(self, cache_key):

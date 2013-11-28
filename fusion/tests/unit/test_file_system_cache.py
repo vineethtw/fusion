@@ -10,6 +10,7 @@ class FileSystemCacheTest(unittest.TestCase):
     def setUp(self):
         cfg.CONF.reset()
         cfg.CONF = mock.Mock(cache=mock.Mock(cache_root="/cache", timeout=10))
+        cfg.CONF.__contains__ = mock.Mock(return_value=True)
         self.cache_file_path = "/cache/.get_templates_cache"
 
     @mock.patch('json.loads')

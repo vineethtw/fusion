@@ -22,14 +22,10 @@ tests/data/environments
 tests/data/simulator.json
 checkmate/providers/opscode/chef-stockton
 tmp
-checkmate/blueprints/.blueprint_cache
 .testrepository/
 profiling/
 .vagrant.*
 
-# possible locations of chef-stockton repo
-checkmate/providers/opscode/chef-stockton
-chef/
 
 # virtual environments
 .venv
@@ -114,3 +110,8 @@ tests/coverage.xml
 #######
 .rvmrc
 .ruby-gemset
+
+
+#Project specific configuration files#
+######################################
+etc/fusion/fusion.conf
