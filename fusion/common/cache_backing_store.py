@@ -52,7 +52,8 @@ class RedisBackingStore(BackingStore):
             except ConnectionError as exc:
                 logger.warn("Error connecting to Redis: %s", exc)
             except Exception as exc:
-                logger.warn("Error storing value in backing store: %s", exc)
+                logger.warn("Error storing value in redis backing store: %s",
+                            exc)
 
     def retrieve(self, key):
         try:
@@ -63,7 +64,7 @@ class RedisBackingStore(BackingStore):
         except KeyError:
             pass
         except Exception as exc:
-            logger.warn("Error accesing backing store: %s", exc)
+            logger.warn("Error accesing redis backing store: %s", exc)
         return None
 
     @staticmethod

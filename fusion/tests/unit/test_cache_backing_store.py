@@ -4,7 +4,6 @@ import unittest
 from fusion.common.cache_backing_store import (
     FileSystemBackingStore,
     RedisBackingStore,
-    REDIS_CLIENT,
 )
 from oslo.config import cfg
 

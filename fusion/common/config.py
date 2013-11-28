@@ -66,8 +66,10 @@ cache_opts = [
                help="Location for cache folder"),
     cfg.IntOpt('default_timeout',
                default=3600,
-               help="default timeout for filesystem cache")
-
+               help="default timeout for filesystem cache"),
+    cfg.StrOpt('redis_connection_string',
+               default="redis_connection_string was not defined!",
+               help="redis connection string"),
 ]
 
 cfg.CONF.register_opts(service_opts)
