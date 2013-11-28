@@ -2,19 +2,16 @@ import yaml
 
 import mock
 import unittest
-
-from fusion.api.templates import template_manager as managers
 from oslo.config import cfg
 
+from fusion.api.templates import template_manager as managers
 
 class TemplateTests(unittest.TestCase):
-    def setUp(self):
-        cfg.CONF.reset()
-        cfg.CONF = mock.Mock(cache=mock.Mock(cache_root="/cache", timeout=10))
 
     @mock.patch.object(managers.GithubManager, 'get_client')
     def test_get_catalog(self, get_client):
         client = mock.MagicMock()
+
         options = mock.MagicMock(
             github=mock.MagicMock(template_catalog_path="catalog_path",
                                   repository_name="repo"))

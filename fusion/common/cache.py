@@ -13,11 +13,14 @@ logger = logging.getLogger(__name__)
 
 class Cache(object):
     def __init__(self, timeout):
-        self.max_age = timeout if timeout else cfg.CONF.cache.default_timeout
+        self.max_age = timeout if timeout else self.get_config(
+            'default_timeout')
 
     def __call__(self, func):
-        cache_key = func.__name__
+        if not self.caching_enabled():
+            return func
 
+        cache_key = func.__name__
         def wrapped_f(*args, **kwargs):
             result = self.try_cache(cache_key)
             if not result:
@@ -26,6 +29,14 @@ class Cache(object):
             return result
 
         return wrapped_f
+
+    def get_config(self, name):
+        if not self.caching_enabled():
+            return None
+        return getattr(cfg.CONF.cache, name)
+
+    def caching_enabled(self):
+        return 'cache' in cfg.CONF
 
     def try_cache(self, cache_key):
         logger.warn("Cache.try_cache called with cache_key %s, but was not "
@@ -62,7 +73,7 @@ class InMemoryCache(Cache):
 
 class FileSystemCache(Cache):
     def __init__(self, timeout=None):
-        self._cache_root = cfg.CONF.cache.cache_root
+        self._cache_root = self.get_config('cache_root')
         super(FileSystemCache, self).__init__(timeout)
 
     def try_cache(self, cache_key):
