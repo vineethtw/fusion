@@ -1,6 +1,7 @@
 import time
 import calendar
 
+from fusion.common.cache_backing_store import BackingStore
 from fusion.openstack.common import log as logging
 from oslo.config import cfg
 
@@ -12,7 +13,7 @@ class Cache(object):
                  backing_store=None, store=None):
         self._max_age = timeout
         self._store = store or {}
-        self._backing_store = backing_store
+        self._backing_store = BackingStore.create(backing_store, timeout)
         self.memorized_function = None
 
     def __call__(self, func):

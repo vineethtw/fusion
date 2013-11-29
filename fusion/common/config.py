@@ -70,6 +70,9 @@ cache_opts = [
     cfg.StrOpt('redis_connection_string',
                default="redis_connection_string was not defined!",
                help="redis connection string"),
+    cfg.ListOpt('memcache_servers',
+                default="memcache_servers was not defined!",
+                help="memcache servers"),
 ]
 
 cfg.CONF.register_opts(service_opts)

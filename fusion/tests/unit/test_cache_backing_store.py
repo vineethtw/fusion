@@ -1,10 +1,11 @@
 import mock
 import unittest
+import pylibmc
 
 from fusion.common.cache_backing_store import (
     FileSystemBackingStore,
     RedisBackingStore,
-)
+    MemcacheBackingStore)
 from oslo.config import cfg
 
 
@@ -149,4 +150,83 @@ class RedisBackingStoreTest(unittest.TestCase):
         mock_client = mock.Mock()
         mock_client.setex.side_effect = Exception("message")
         store = RedisBackingStore(60, mock_client)
+        store.cache("get_templates", "content")
+
+
+class MemcacheBackingStoreTest(unittest.TestCase):
+    @mock.patch('calendar.timegm')
+    @mock.patch('time.gmtime')
+    def test_retrieve(self, mock_gmtime, mock_timegm):
+        client = mock.Mock()
+        mock_gmtime.return_value = 10
+        mock_timegm.return_value = 20
+        client.get.return_value = (10, "content")
+
+        store = MemcacheBackingStore(60, client)
+        result = store.retrieve("get_templates")
+
+        self.assertEqual("content", result)
+        self.assertTrue(mock_gmtime.called)
+        mock_timegm.assert_called_once_with(10)
+
+    @mock.patch('calendar.timegm')
+    @mock.patch('time.gmtime')
+    def test_retrieve_for_expired_cache(self, mock_gmtime, mock_timegm):
+        client = mock.Mock()
+        mock_gmtime.return_value = 10
+        mock_timegm.return_value = 20
+        client.get.return_value = (10, "content")
+
+        store = MemcacheBackingStore(5, client)
+        result = store.retrieve("get_templates")
+
+        self.assertIsNone(result)
+        self.assertTrue(mock_gmtime.called)
+        mock_timegm.assert_called_once_with(10)
+        client.delete.assert_called_once_with("get_templates")
+
+    def test_retrieve_pylib_exc_handling(self):
+        client = mock.Mock()
+        client.get.side_effect = pylibmc.Error()
+
+        store = MemcacheBackingStore(5, client)
+        result = store.retrieve("get_templates")
+
+        self.assertIsNone(result)
+
+    def test_retrieve_generic_exc_handling(self):
+        client = mock.Mock()
+        client.get.side_effect = Exception("error")
+
+        store = MemcacheBackingStore(5, client)
+        result = store.retrieve("get_templates")
+
+        self.assertIsNone(result)
+
+    @mock.patch('calendar.timegm')
+    @mock.patch('time.gmtime')
+    def test_cache(self, mock_gmtime, mock_timegm):
+        client = mock.Mock()
+        mock_gmtime.return_value = 10
+        mock_timegm.return_value = 20
+
+        store = MemcacheBackingStore(60, client)
+        store.cache("get_templates", "content")
+
+        client.set.assert_called_with("get_templates", (20, "content"))
+        self.assertTrue(mock_gmtime.called)
+        mock_timegm.assert_called_once_with(10)
+
+    def test_cache_pylibmc_exc_handling(self):
+        client = mock.Mock()
+        client.set.side_effect = pylibmc.Error()
+
+        store = MemcacheBackingStore(60, client)
+        store.cache("get_templates", "content")
+
+    def test_cache_pylibmc_exc_handling(self):
+        client = mock.Mock()
+        client.set.side_effect = Exception("msg")
+
+        store = MemcacheBackingStore(60, client)
         store.cache("get_templates", "content")

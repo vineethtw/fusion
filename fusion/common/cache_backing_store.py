@@ -1,6 +1,8 @@
 import cPickle as pickle
+import calendar
 import json
 import os
+import pylibmc
 import redis
 import time
 
@@ -11,7 +13,11 @@ from redis.exceptions import ConnectionError
 
 logger = logging.getLogger(__name__)
 
+REDIS = "redis"
+MEMCACHE = "memcache"
+FILE_SYSTEM = "filesystem"
 REDIS_CLIENT = None
+MEMCACHE_CLIENT = None
 
 try:
     REDIS_CLIENT = redis.from_url(
@@ -19,15 +25,26 @@ try:
 except StandardError as exc:
     logger.warn("Error connecting to Redis: %s", exc)
 
-
-def get_backing_store(max_age):
-    if REDIS_CLIENT:
-        return RedisBackingStore(max_age, REDIS_CLIENT)
-    else:
-        return FileSystemBackingStore(max_age)
+try:
+    servers = cfg.CONF.cache.memcache_servers
+    MEMCACHE_CLIENT = pylibmc.Client(servers, behaviors={
+        "tcp_nodelay": True, "ketama": True}, binary=True)
+except StandardError as exc:
+    logger.warn("Error connecting to memcache: %s", exc)
 
 
 class BackingStore(object):
+    @staticmethod
+    def create(type, max_age):
+        if type == REDIS:
+            return RedisBackingStore(max_age, REDIS_CLIENT)
+        elif type == MEMCACHE:
+            return MemcacheBackingStore(max_age, MEMCACHE_CLIENT)
+        elif type == FILE_SYSTEM:
+            return FileSystemBackingStore(max_age)
+        else:
+            return None
+
     def __init__(self, max_age):
         self._max_age = max_age
 
@@ -114,3 +131,31 @@ class FileSystemBackingStore(BackingStore):
                 self._cache_file(cache_key))
             return time.time() - cache_last_update_time >= self._max_age
         return True
+
+
+class MemcacheBackingStore(BackingStore):
+    def __init__(self, max_age, memcache_client):
+        self.memcache_client = memcache_client
+        super(MemcacheBackingStore, self).__init__(max_age)
+
+    def retrieve(self, key):
+        try:
+            data = self.memcache_client.get(key)
+            if data:
+                if calendar.timegm(time.gmtime()) - data[0] < self._max_age:
+                    return data[1]
+                else:
+                    self.memcache_client.delete(key)
+        except pylibmc.Error as exc:
+            logger.warn("Error while retrieving value from memcache: %s", exc)
+        except Exception as exc:
+            logger.warn("Error accesing memcache backing store: %s", exc)
+
+    def cache(self, key, data):
+        try:
+            birthday = calendar.timegm(time.gmtime())
+            self.memcache_client.set(key, (birthday, data))
+        except pylibmc.Error as exc:
+            logger.warn("Error while retrieving value from memcache: %s", exc)
+        except Exception as exc:
+            logger.warn("Error accesing memcache backing store: %s", exc)
