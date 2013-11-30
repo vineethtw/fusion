@@ -15,7 +15,7 @@
 #    under the License.
 
 """
-Routines for configuring Heat
+Routines for configuring Fusion
 """
 
 import logging as sys_logging

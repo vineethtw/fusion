@@ -48,6 +48,7 @@ class Cache(object):
             value = self._backing_store.retrieve(key)
             if value:
                 self._store[key] = value
+                return value
         return None
 
     def update_cache(self, key, value):
