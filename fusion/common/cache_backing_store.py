@@ -24,6 +24,8 @@ try:
         cfg.CONF.cache.redis_connection_string)
 except StandardError as exc:
     logger.warn("Error connecting to Redis: %s", exc)
+except NoSuchOptError as exc:
+    logger.warn("Redis configuration not found!")
 
 try:
     servers = cfg.CONF.cache.memcache_servers
@@ -31,6 +33,8 @@ try:
         "tcp_nodelay": True, "ketama": True}, binary=True)
 except StandardError as exc:
     logger.warn("Error connecting to memcache: %s", exc)
+except NoSuchOptError as exc:
+    logger.warn("Memcache configuration not found!")
 
 
 class BackingStore(object):

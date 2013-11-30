@@ -30,6 +30,8 @@ import traceback
 
 DEFAULT_PORT = 8000
 
+logger = logging.getLogger(__name__)
+
 paste_deploy_group = cfg.OptGroup('paste_deploy')
 paste_deploy_opts = [
     cfg.StrOpt('flavor',
@@ -143,3 +145,10 @@ def load_paste_app(app_name=None):
                              "\nGot: %(e)r") % {'app_name': app_name,
                                                 'conf_file': conf_file,
                                                 'e': e})
+
+def safe_get_config(group, name):
+    if group not in cfg.CONF:
+        logger.warn("Could not find %s group in the configuration file! This"
+                    "might be cause due to bad configuration.")
+        return None
+    return getattr(getattr(cfg.CONF, group),name)
