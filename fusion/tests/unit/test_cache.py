@@ -2,9 +2,10 @@ import mock
 import unittest
 import calendar
 
-from oslo.config import cfg
 from fusion.common.cache_backing_store import BackingStore
 from fusion.common import cache
+from oslo.config import cfg
+
 
 class CacheTests(unittest.TestCase):
 
@@ -14,7 +15,8 @@ class CacheTests(unittest.TestCase):
 
     @mock.patch.object(calendar, "timegm")
     def test_cache_cache_hit(self, mock_timegm):
-        mock_timegm.return_value = 10 # current time is within the age
+        # current time is within the age
+        mock_timegm.return_value = 10
         _cache = cache.Cache(timeout=120, store={"key": (10, "data")})
         returned = _cache.try_cache("key")
         self.assertEquals(returned, "data")
@@ -22,34 +24,45 @@ class CacheTests(unittest.TestCase):
     @mock.patch.object(calendar, "timegm")
     @mock.patch.object(BackingStore, "create")
     def test_in_memory_cache_has_expired_value(
-            self, mock_backingstore_create, mock_timegm):
-        mock_timegm.return_value = 1000 # current time is way past age
+            self, mock_backing_store_create, mock_timegm):
+        # current time is way past age
+        mock_timegm.return_value = 1000
         mock_backing_store = mock.MagicMock(retrieve=mock.MagicMock(
             return_value="from_backing_store"))
-        mock_backingstore_create.return_value = mock_backing_store
+        mock_backing_store_create.return_value = mock_backing_store
         _cache = cache.Cache(timeout=120, store={"key": (10, "data")},
                              backing_store=mock_backing_store)
         returned = _cache.try_cache("key")
-        self.assertEquals(returned, None) #need to make a fresh call
+        #need to make a fresh call
+        self.assertEquals(returned, None)
 
+    @mock.patch('time.gmtime')
     @mock.patch.object(calendar, "timegm")
     @mock.patch.object(BackingStore, "create")
     def test_cache_in_memory_cache_miss_but_backing_store_has_value(
-            self, mock_backingstore_create, mock_timegm):
-        mock_timegm.return_value = 1000 # current time is way past age
+            self, mock_backingstore_create, mock_timegm, mock_gmtime):
+        mock_gmtime.side_effect = [10, 20]
+        #current time is way past age
+        mock_timegm.side_effect = [1000, 1050]
         mock_backing_store = mock.MagicMock(retrieve=mock.MagicMock(
             return_value="from_backing_store"))
         mock_backingstore_create.return_value = mock_backing_store
         _cache = cache.Cache(timeout=120,
                              backing_store=mock_backing_store)
-        returned = _cache.try_cache("key")
-        self.assertEquals(returned, "from_backing_store")
+        backend_store_result = _cache.try_cache("key")
+        in_memory_result = _cache.try_cache("key")
+        self.assertEquals(backend_store_result, "from_backing_store")
+        self.assertEquals(in_memory_result, "from_backing_store")
+        mock_backing_store.retrieve.assert_called_once_with("key")
+        timegm_calls = [mock.call(10), mock.call(20)]
+        mock_timegm.assert_has_calls(timegm_calls)
 
     @mock.patch.object(calendar, "timegm")
     @mock.patch.object(BackingStore, "create")
     def test_inmemory_cache_miss_and_backing_store_does_not_have_value(
             self, mock_backingstore_create, mock_timegm):
-        mock_timegm.return_value = 1000 #current time is way past age
+        #current time is way past age
+        mock_timegm.return_value = 1000
         mock_backing_store = mock.MagicMock(retrieve=mock.MagicMock(
             return_value=None))
         mock_backingstore_create.return_value = mock_backing_store
@@ -58,10 +71,9 @@ class CacheTests(unittest.TestCase):
         returned = _cache.try_cache("key")
         self.assertEquals(returned, None)
 
-
     def test_caching_disabled_when_cache_conf_not_available(self):
         def look_for_cache_conf(*args, **kwargs):
-            return False if args[0]=="cache" else True
+            return False if args[0] == "cache" else True
 
         cfg.CONF.__contains__ = mock.Mock(side_effect=look_for_cache_conf)
         unwrapped_function = mock.Mock()
@@ -120,9 +132,9 @@ class CacheTests(unittest.TestCase):
         self.assertEquals("result_from_a_fresh_call", result)
 
         self.assertTrue("function_name" in _cache._store)
-        self.assertEquals(("time","result_from_a_fresh_call"), _cache._store[
+        self.assertEquals(("time", "result_from_a_fresh_call"), _cache._store[
             "function_name"])
         _cache.try_cache.assert_called_once_with('function_name')
-        backing_store.cache.assert_called_once_with("function_name",
-                                              "result_from_a_fresh_call")
+        backing_store.cache.assert_called_once_with(
+            "function_name", "result_from_a_fresh_call")
 
