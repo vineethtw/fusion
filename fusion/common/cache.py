@@ -8,6 +8,7 @@ from fusion.common import config
 
 logger = logging.getLogger(__name__)
 
+
 class Cache(object):
     def __init__(self, timeout=None, backing_store=None, store=None):
         self._max_age = self.__default_timeout() if not timeout else timeout
@@ -47,7 +48,7 @@ class Cache(object):
         elif self._backing_store:
             value = self._backing_store.retrieve(key)
             if value:
-                self._store[key] = value
+                self._store[key] = (calendar.timegm(time.gmtime()), value)
                 return value
         return None
 

@@ -7,7 +7,7 @@ import yaml
 from eventlet import greenpool
 
 from fusion.common import cache
-from fusion.common.cache_backing_store import FILE_SYSTEM, MEMCACHE
+from fusion.common.cache_backing_store import MEMCACHE
 from fusion.openstack.common import log as logging
 
 logger = logging.getLogger(__name__)
