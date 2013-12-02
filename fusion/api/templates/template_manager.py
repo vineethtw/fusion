@@ -6,11 +6,13 @@ import yaml
 
 from eventlet import greenpool
 
-from fusion.common.cache import FileSystemCache as file_cache
-from fusion.common.cache import InMemoryCache as memory_cache
+from fusion.common import cache
+from fusion.common.cache_backing_store import FILE_SYSTEM, MEMCACHE
 from fusion.openstack.common import log as logging
 
 logger = logging.getLogger(__name__)
+
+TEMPLATES = {}
 
 
 class TemplateManager(object):
@@ -34,6 +36,7 @@ class GithubManager(TemplateManager):
                              self._options.password,
                              user_agent=self._options.username)
 
+    @cache.Cache(timeout=120, store=TEMPLATES, backing_store=MEMCACHE)
     def get_catalog(self):
         repo = self._get_repository()
         file_content = repo.get_file_contents(
@@ -41,8 +44,7 @@ class GithubManager(TemplateManager):
         decoded_content = base64.b64decode(file_content)
         return decoded_content
 
-    @memory_cache()
-    @file_cache()
+    @cache.Cache(timeout=60, store=TEMPLATES, backing_store=MEMCACHE)
     def get_templates(self):
         templates = {}
         catalog = self.get_catalog()

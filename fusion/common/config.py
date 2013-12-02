@@ -15,7 +15,7 @@
 #    under the License.
 
 """
-Routines for configuring Heat
+Routines for configuring Fusion
 """
 
 import logging as sys_logging
@@ -29,6 +29,8 @@ from fusion.openstack.common import log as logging
 import traceback
 
 DEFAULT_PORT = 8000
+
+logger = logging.getLogger(__name__)
 
 paste_deploy_group = cfg.OptGroup('paste_deploy')
 paste_deploy_opts = [
@@ -66,8 +68,13 @@ cache_opts = [
                help="Location for cache folder"),
     cfg.IntOpt('default_timeout',
                default=3600,
-               help="default timeout for filesystem cache")
-
+               help="default timeout for filesystem cache"),
+    cfg.StrOpt('redis_connection_string',
+               default="redis_connection_string was not defined!",
+               help="redis connection string"),
+    cfg.ListOpt('memcache_servers',
+                default="memcache_servers was not defined!",
+                help="memcache servers"),
 ]
 
 cfg.CONF.register_opts(service_opts)
@@ -138,3 +145,10 @@ def load_paste_app(app_name=None):
                              "\nGot: %(e)r") % {'app_name': app_name,
                                                 'conf_file': conf_file,
                                                 'e': e})
+
+def safe_get_config(group, name):
+    if group not in cfg.CONF:
+        logger.warn("Could not find %s group in the configuration file! This"
+                    "might be cause due to bad configuration.")
+        return None
+    return getattr(getattr(cfg.CONF, group),name)
