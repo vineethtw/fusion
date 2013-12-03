@@ -5,6 +5,7 @@ import os
 import pylibmc
 import redis
 import time
+import datetime
 
 from fusion.common.timeutils import json_handler
 from fusion.openstack.common import log as logging
@@ -60,6 +61,10 @@ class BackingStore(object):
         logger.warn("Cache.try_cache called with cache_key %s, but was not "
                     "implemented", key)
 
+    def get_birthday(self, key):
+        logger.warn("Cache.try_cache called with get_birthday %s, but was "
+                    "not implemented", key)
+
 
 class RedisBackingStore(BackingStore):
     def __init__(self, max_age, redis_client):
@@ -87,6 +92,12 @@ class RedisBackingStore(BackingStore):
         except Exception as exc:
             logger.warn("Error accesing redis backing store: %s", exc)
         return None
+
+    def get_birthday(self, key):
+        timeout = self._redis_client.ttl(key)
+        if (timeout in [-1, -2]):
+            return None
+        return datetime.datetime.now() - datetime.timedelta(seconds=timeout)
 
     @staticmethod
     def _encode(data):
@@ -136,6 +147,9 @@ class FileSystemBackingStore(BackingStore):
             return time.time() - cache_last_update_time >= self._max_age
         return True
 
+    def get_birthday(self, key ):
+        if os.path.exists(self._cache_file(key)):
+            return os.path.getmtime(self._cache_file(key))
 
 class MemcacheBackingStore(BackingStore):
     def __init__(self, max_age, memcache_client):
@@ -150,6 +164,15 @@ class MemcacheBackingStore(BackingStore):
                     return data[1]
                 else:
                     self.memcache_client.delete(key)
+        except pylibmc.Error as exc:
+            logger.warn("Error while retrieving value from memcache: %s", exc)
+        except Exception as exc:
+            logger.warn("Error accesing memcache backing store: %s", exc)
+
+
+    def get_birthday(self, key):
+        try:
+            return self.memcache_client.get(key)[0]
         except pylibmc.Error as exc:
             logger.warn("Error while retrieving value from memcache: %s", exc)
         except Exception as exc:

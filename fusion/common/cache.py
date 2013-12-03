@@ -49,7 +49,11 @@ class Cache(object):
             if value:
                 logger.debug("[%s] Cache hit for key %s",
                              self._backing_store.__class__.__name__, key)
-                self._store[key] = (calendar.timegm(time.gmtime()), value)
+                birthday_backing_store = self._backing_store.get_birthday(key)
+                birthday = (calendar.timegm(time.gmtime())
+                            if not birthday_backing_store
+                            else birthday_backing_store)
+                self._store[key] = (birthday, value)
                 return value
         return None
 

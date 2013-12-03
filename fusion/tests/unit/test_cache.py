@@ -45,8 +45,9 @@ class CacheTests(unittest.TestCase):
         mock_gmtime.side_effect = [10, 20]
         #current time is way past age
         mock_timegm.side_effect = [1000, 1050]
-        mock_backing_store = mock.MagicMock(retrieve=mock.MagicMock(
-            return_value="from_backing_store"))
+        mock_backing_store = mock.MagicMock(
+            retrieve=mock.MagicMock(return_value="from_backing_store"),
+            get_birthday=mock.MagicMock(return_value=None))
         mock_backingstore_create.return_value = mock_backing_store
         _cache = cache.Cache(timeout=120,
                              backing_store=mock_backing_store)
@@ -56,6 +57,30 @@ class CacheTests(unittest.TestCase):
         self.assertEquals(in_memory_result, "from_backing_store")
         mock_backing_store.retrieve.assert_called_once_with("key")
         timegm_calls = [mock.call(10), mock.call(20)]
+        mock_timegm.assert_has_calls(timegm_calls)
+
+    @mock.patch('time.gmtime')
+    @mock.patch.object(calendar, "timegm")
+    @mock.patch.object(BackingStore, "create")
+    def test_cache_in_memory_cache_miss_but_backing_store_has_val_and_birthday(
+            self, mock_backingstore_create, mock_timegm, mock_gmtime):
+        #second side_effect should not be called
+        mock_gmtime.side_effect = [10,20]
+        #current time is way past age
+        mock_timegm.side_effect = [1000, 1050]
+        mock_backing_store = mock.MagicMock(
+            retrieve=mock.MagicMock(return_value="from_backing_store"),
+            get_birthday=mock.MagicMock(return_value=5000))
+        mock_backingstore_create.return_value = mock_backing_store
+        _cache = cache.Cache(timeout=120,
+                             backing_store=mock_backing_store)
+        backend_store_result = _cache.try_cache("key")
+        in_memory_result = _cache.try_cache("key")
+        self.assertEquals(backend_store_result, "from_backing_store")
+        self.assertEquals(in_memory_result, "from_backing_store")
+        mock_backing_store.retrieve.assert_called_once_with("key")
+        timegm_calls = [mock.call(10)]
+        self.assertEquals(_cache._store["key"], (5000,"from_backing_store"))
         mock_timegm.assert_has_calls(timegm_calls)
 
     @mock.patch.object(calendar, "timegm")
