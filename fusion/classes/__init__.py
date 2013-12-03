@@ -1,4 +1,6 @@
 import collections
+import json
+
 
 class ExtensibleSequence(collections.MutableSequence):
     def __len__(self):
@@ -34,6 +36,7 @@ class ExtensibleSequence(collections.MutableSequence):
         if 'default' not in kwargs:
             kwargs['default'] = lambda obj: obj.__dict__
         return json.dumps(self.store, *args, **kwargs)
+
 
 class ExtensibleDict(collections.MutableMapping):
     def __getattr__(self, name):
