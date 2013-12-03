@@ -23,3 +23,7 @@ class API(wsgi.Router):
                                     "/templates",
                                     action="get_templates",
                                     conditions={'method': 'GET'})
+            template_mapper.connect("parse_template",
+                                    "/templates/parse",
+                                    action="parse_template",
+                                    conditions={'method': 'POST'})

@@ -1,12 +1,11 @@
 import base64
 import github
 import json
-import requests
 import yaml
 
 from eventlet import greenpool
 
-from fusion.common import cache
+from fusion.common import cache, urlfetch
 from fusion.common.cache_backing_store import MEMCACHE
 from fusion.openstack.common import log as logging
 
@@ -61,7 +60,7 @@ class GithubManager(TemplateManager):
         return templates
 
     def _get_template(self, template_id, template_url):
-        response = requests.get(template_url)
+        response = urlfetch.get(template_url)
         return {template_id: yaml.load(response.content)}
 
     def _get_user(self):

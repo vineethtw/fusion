@@ -13,8 +13,3 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-# from fusion.api.middleware.fault import FaultWrapper
-#
-#
-# def faultwrap_filter(app, conf, **local_conf):
-#     return FaultWrapper(app)
