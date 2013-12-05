@@ -139,9 +139,21 @@ class TemplateController(object):
 
     def get_templates(self, req):
         """
-        Gets template
+        Gets all templates
         """
-        return self._manager.get_templates().__str__()
+        return self._manager.get_templates(False).__str__()
+
+    def get_template(self, req, template_id):
+        """
+        Get template
+        """
+        logger.debug("===========This is the request %s========",
+                     req.query_string)
+        template_id = int(template_id)
+        template = self._manager.get_template(template_id, False)
+        if not template:
+            return exc.HTTPNotFound()
+        return template.__str__()
 
     def parse_template(self, req, body):
         data = InstantiationData(body)
@@ -149,10 +161,6 @@ class TemplateController(object):
         template = data.template()
         #Need to find how to get values from parameters and then return it
         # back
-
-
-class TemplateSerializer(object):
-    pass
 
 
 def create_resource(options):

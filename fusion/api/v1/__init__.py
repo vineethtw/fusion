@@ -23,6 +23,10 @@ class API(wsgi.Router):
                                     "/templates",
                                     action="get_templates",
                                     conditions={'method': 'GET'})
+            template_mapper.connect("get_template",
+                                    "/templates/{template_id}",
+                                    action="get_template",
+                                    conditions={'method': 'GET'})
             template_mapper.connect("parse_template",
                                     "/templates/parse",
                                     action="parse_template",

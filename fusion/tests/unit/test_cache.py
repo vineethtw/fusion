@@ -34,7 +34,7 @@ class CacheTests(unittest.TestCase):
                              backing_store=mock_backing_store)
         returned = _cache.try_cache("key")
         #need to make a fresh call
-        self.assertEquals(returned, None)
+        self.assertEquals(returned, "from_backing_store")
 
     @mock.patch('time.gmtime')
     @mock.patch.object(calendar, "timegm")
@@ -92,7 +92,7 @@ class CacheTests(unittest.TestCase):
         result = _wrapped_func()
         self.assertEquals("cached_data", result)
 
-        _cache.try_cache.assert_called_once_with('function_name')
+        _cache.try_cache.assert_called_once_with(('function_name', (), ()))
 
     @mock.patch.object(calendar, "timegm")
     def test_updates_only_in_memory_cache_when_try_cache_fails(self, timegm):
@@ -108,10 +108,10 @@ class CacheTests(unittest.TestCase):
         result = _wrapped_func()
         self.assertEquals("result_from_a_fresh_call", result)
 
-        self.assertTrue("function_name" in _cache._store)
+        self.assertTrue(("function_name", (), ()) in _cache._store)
         self.assertEquals(("time", "result_from_a_fresh_call"),
-                          _cache._store["function_name"])
-        _cache.try_cache.assert_called_once_with('function_name')
+                          _cache._store[("function_name", (), ())])
+        _cache.try_cache.assert_called_once_with(("function_name", (), ()))
 
     @mock.patch.object(calendar, "timegm")
     @mock.patch.object(BackingStore, "create")
@@ -119,7 +119,7 @@ class CacheTests(unittest.TestCase):
             self, backing_store_create, timegm):
         cfg.CONF.__contains__ = mock.MagicMock(return_value=True)
         backing_store = mock.MagicMock()
-        backing_store_create.return_value=backing_store
+        backing_store_create.return_value = backing_store
         timegm.return_value = "time"
         _func = mock.MagicMock(__name__="function_name",
                                return_value="result_from_a_fresh_call")
@@ -131,10 +131,10 @@ class CacheTests(unittest.TestCase):
         result = _wrapped_func()
         self.assertEquals("result_from_a_fresh_call", result)
 
-        self.assertTrue("function_name" in _cache._store)
+        self.assertTrue(("function_name", (), ()) in _cache._store)
         self.assertEquals(("time", "result_from_a_fresh_call"), _cache._store[
-            "function_name"])
-        _cache.try_cache.assert_called_once_with('function_name')
+            ("function_name", (), ())])
+        _cache.try_cache.assert_called_once_with(("function_name", (), ()))
         backing_store.cache.assert_called_once_with(
-            "function_name", "result_from_a_fresh_call")
+            ("function_name", (), ()), "result_from_a_fresh_call")
 

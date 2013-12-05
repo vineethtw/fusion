@@ -27,10 +27,11 @@ class Cache(object):
         self.memorized_function = func.__name__
 
         def wrapped_f(*args, **kwargs):
-            result = self.try_cache(self.memorized_function)
+            key = self.get_hash(self.memorized_function, *args, **kwargs)
+            result = self.try_cache(key)
             if not result:
                 result = func(*args, **kwargs)
-                self.update_cache(self.memorized_function, result)
+                self.update_cache(key, result)
             return result
 
         return wrapped_f
@@ -56,3 +57,6 @@ class Cache(object):
         self._store[key] = (calendar.timegm(time.gmtime()), value)
         if self._backing_store:
             self._backing_store.cache(key, value)
+
+    def get_hash(self, func_name, *args, **kwargs):
+        return func_name, args, tuple(sorted(kwargs.items()))
