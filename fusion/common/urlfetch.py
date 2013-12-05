@@ -24,7 +24,7 @@ import urlparse
 
 from oslo.config import cfg
 
-cfg.CONF.import_opt('max_template_size', 'heat.common.config')
+cfg.CONF.import_opt('max_template_size', 'fusion.common.config')
 
 from fusion.openstack.common import log as logging
 from fusion.openstack.common.gettextutils import _

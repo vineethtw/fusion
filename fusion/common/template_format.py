@@ -21,7 +21,7 @@ from oslo.config import cfg
 
 from fusion.common import exception
 
-cfg.CONF.import_opt('max_template_size', 'heat.common.config')
+cfg.CONF.import_opt('max_template_size', 'fusion.common.config')
 
 HEAT_VERSIONS = (u'2012-12-12',)
 CFN_VERSIONS = (u'2010-09-09',)
