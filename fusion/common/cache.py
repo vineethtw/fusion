@@ -15,7 +15,6 @@ class Cache(object):
         self._store = store or {}
         self._backing_store = BackingStore.create(backing_store,
                                                   self._max_age)
-        self.memorized_function = None
 
     def __default_timeout(self):
         return config.safe_get_config("cache", "default_timeout")
@@ -24,10 +23,8 @@ class Cache(object):
         if not self.caching_enabled():
             return func
 
-        self.memorized_function = func.__name__
-
         def wrapped_f(*args, **kwargs):
-            key = self.get_hash(self.memorized_function, *args, **kwargs)
+            key = self.get_hash(func.__name__, *args, **kwargs)
             result = self.try_cache(key)
             if not result:
                 result = func(*args, **kwargs)
@@ -44,19 +41,26 @@ class Cache(object):
             birthday, data = self._store[key]
             age = calendar.timegm(time.gmtime()) - birthday
             if age < self._max_age:
-                logger.debug("Cache hit in %s", self.memorized_function)
+                logger.debug("[%s] Cache hit for key %s",
+                             self.__class__.__name__, key)
                 return data
         elif self._backing_store:
             value = self._backing_store.retrieve(key)
             if value:
+                logger.debug("[%s] Cache hit for key %s",
+                             self._backing_store.__class__.__name__, key)
                 self._store[key] = (calendar.timegm(time.gmtime()), value)
                 return value
         return None
 
     def update_cache(self, key, value):
         self._store[key] = (calendar.timegm(time.gmtime()), value)
+        logger.debug("[%s] Updated cache for key %s",
+                     self.__class__.__name__, key)
         if self._backing_store:
             self._backing_store.cache(key, value)
+            logger.debug("[%s] Updated cache for key %s",
+                         self._backing_store.__class__.__name__, key)
 
     def get_hash(self, func_name, *args, **kwargs):
-        return func_name, args, tuple(sorted(kwargs.items()))
+        return str((func_name, args, tuple(sorted(kwargs.items()))))
