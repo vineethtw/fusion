@@ -45,7 +45,7 @@ class GithubManagerTest(unittest.TestCase):
                     "id": 1,
                     "name": "Single Instance Redis Server (Linux)",
                     "url": "https://github.com/templates/redis.template",
-                    "meta_url": "https://github.com/templates/redis.metadata
+                    "meta_url": "https://github.com/templates/redis.metadata"
                 },
                 {
                     "id": 2,
@@ -64,7 +64,9 @@ class GithubManagerTest(unittest.TestCase):
             Simple template to deploy wordpress on a cloud server
         """
         mock_get.side_effect = [redis_template, wordpress_template]
-        mock_options = mock.Mock(github={})
+        mock_options = mock.Mock(github=mock.Mock(username="foo",
+                                                  template_catalog_path="path",
+                                                  repository_name="name"))
 
         manager = managers.GithubManager(mock_options)
         templates = manager.get_templates(False)
@@ -117,7 +119,9 @@ class GithubManagerTest(unittest.TestCase):
         """
         mock_get.side_effect = [redis_template, redis_metadata,
                                 wordpress_template]
-        mock_options = mock.Mock(github={})
+        mock_options = mock.Mock(github=mock.Mock(username="foo",
+                                                  template_catalog_path="path",
+                                                  repository_name="name"))
 
         manager = managers.GithubManager(mock_options)
         templates = manager.get_templates(True)
@@ -163,7 +167,9 @@ class GithubManagerTest(unittest.TestCase):
             Metadata for redis template
         """
         mock_get.side_effect = [redis_template, redis_metadata]
-        mock_options = mock.Mock(github={})
+        mock_options = mock.Mock(github=mock.Mock(username="foo",
+                                                  template_catalog_path="path",
+                                                  repository_name="name"))
 
         manager = managers.GithubManager(mock_options)
         template = manager.get_template(1, True)
@@ -201,7 +207,9 @@ class GithubManagerTest(unittest.TestCase):
             Simple template to deploy Redis on a cloud server
         """
         mock_get.return_value = redis_template
-        mock_options = mock.Mock(github={})
+        mock_options = mock.Mock(github=mock.Mock(username="foo",
+                                                  template_catalog_path="path",
+                                                  repository_name="name"))
 
         manager = managers.GithubManager(mock_options)
         template = manager.get_template(1, False)
