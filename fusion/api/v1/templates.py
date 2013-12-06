@@ -88,7 +88,6 @@ class InstantiationData(object):
 
         return self.format_parse(template_data, 'Template')
 
-
     def environment(self):
         """
         Get the user-supplied environment for the stack in YAML format.
@@ -141,16 +140,16 @@ class TemplateController(object):
         """
         Gets all templates
         """
-        return self._manager.get_templates(False).__str__()
+        with_meta = True if 'with_meta' in req.params else False
+        return self._manager.get_templates(with_meta).__str__()
 
     def get_template(self, req, template_id):
         """
         Get template
         """
-        logger.debug("===========This is the request %s========",
-                     req.query_string)
+        with_meta = True if 'with_meta' in req.params else False
         template_id = int(template_id)
-        template = self._manager.get_template(template_id, False)
+        template = self._manager.get_template(template_id, with_meta)
         if not template:
             return exc.HTTPNotFound()
         return template.__str__()
