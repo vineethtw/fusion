@@ -144,13 +144,12 @@ class MemcacheBackingStore(BackingStore):
 
     def retrieve(self, key):
         try:
-            backing_store_key = self._backing_store_key(key)
-            data = self.memcache_client.get(backing_store_key)
+            data = self.memcache_client.get(key)
             if data:
                 if calendar.timegm(time.gmtime()) - data[0] < self._max_age:
                     return data[1]
                 else:
-                    self.memcache_client.delete(backing_store_key)
+                    self.memcache_client.delete(key)
         except pylibmc.Error as exc:
             logger.warn("Error while retrieving value from memcache: %s", exc)
         except Exception as exc:
@@ -159,12 +158,8 @@ class MemcacheBackingStore(BackingStore):
     def cache(self, key, data):
         try:
             birthday = calendar.timegm(time.gmtime())
-            self.memcache_client.set(self._backing_store_key(key),
-                                     (birthday, data))
+            self.memcache_client.set(key, (birthday, data))
         except pylibmc.Error as exc:
             logger.warn("Error while retrieving value from memcache: %s", exc)
         except Exception as exc:
             logger.warn("Error accesing memcache backing store: %s", exc)
-
-    def _backing_store_key(self, key):
-        return repr(key)

@@ -34,7 +34,8 @@ class CacheTests(unittest.TestCase):
                              backing_store=mock_backing_store)
         returned = _cache.try_cache("key")
         #need to make a fresh call
-        self.assertEquals(returned, "from_backing_store")
+        self.assertEquals(returned, None)
+        self.assertFalse(mock_backing_store.retrieve.called)
 
     @mock.patch('time.gmtime')
     @mock.patch.object(calendar, "timegm")
@@ -92,7 +93,7 @@ class CacheTests(unittest.TestCase):
         result = _wrapped_func()
         self.assertEquals("cached_data", result)
 
-        _cache.try_cache.assert_called_once_with(('function_name', (), ()))
+        _cache.try_cache.assert_called_once_with("('function_name', (), ())")
 
     @mock.patch.object(calendar, "timegm")
     def test_updates_only_in_memory_cache_when_try_cache_fails(self, timegm):
@@ -108,10 +109,11 @@ class CacheTests(unittest.TestCase):
         result = _wrapped_func()
         self.assertEquals("result_from_a_fresh_call", result)
 
-        self.assertTrue(("function_name", (), ()) in _cache._store)
+        cache_key = "('function_name', (), ())"
+        self.assertTrue(cache_key in _cache._store)
         self.assertEquals(("time", "result_from_a_fresh_call"),
-                          _cache._store[("function_name", (), ())])
-        _cache.try_cache.assert_called_once_with(("function_name", (), ()))
+                          _cache._store[cache_key])
+        _cache.try_cache.assert_called_once_with(cache_key)
 
     @mock.patch.object(calendar, "timegm")
     @mock.patch.object(BackingStore, "create")
@@ -131,10 +133,11 @@ class CacheTests(unittest.TestCase):
         result = _wrapped_func()
         self.assertEquals("result_from_a_fresh_call", result)
 
-        self.assertTrue(("function_name", (), ()) in _cache._store)
+        cache_key = "('function_name', (), ())"
+        self.assertTrue(cache_key in _cache._store)
         self.assertEquals(("time", "result_from_a_fresh_call"), _cache._store[
-            ("function_name", (), ())])
-        _cache.try_cache.assert_called_once_with(("function_name", (), ()))
+            cache_key])
+        _cache.try_cache.assert_called_once_with(cache_key)
         backing_store.cache.assert_called_once_with(
-            ("function_name", (), ()), "result_from_a_fresh_call")
+            cache_key, "result_from_a_fresh_call")
 

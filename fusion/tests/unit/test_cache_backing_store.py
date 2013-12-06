@@ -168,6 +168,7 @@ class MemcacheBackingStoreTest(unittest.TestCase):
         self.assertEqual("content", result)
         self.assertTrue(mock_gmtime.called)
         mock_timegm.assert_called_once_with(10)
+        client.get.assert_called_once_with("get_templates")
 
     @mock.patch('calendar.timegm')
     @mock.patch('time.gmtime')
@@ -184,6 +185,7 @@ class MemcacheBackingStoreTest(unittest.TestCase):
         self.assertTrue(mock_gmtime.called)
         mock_timegm.assert_called_once_with(10)
         client.delete.assert_called_once_with("get_templates")
+        client.get.assert_called_once_with("get_templates")
 
     def test_retrieve_pylib_exc_handling(self):
         client = mock.Mock()
