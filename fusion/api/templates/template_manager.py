@@ -1,11 +1,11 @@
 import base64
-import github
-import json
 import yaml
 
 from eventlet import greenpool
+import github
+from github import GithubException
 
-from fusion.common import cache, urlfetch
+from fusion.common import cache
 from fusion.common.cache_backing_store import MEMCACHE
 from fusion.openstack.common import log as logging
 
@@ -15,8 +15,8 @@ TEMPLATES = {}
 
 
 class TemplateManager(object):
-    def get_catalog(self):
-        logger.warn("TemplateManager.get_catalog called but was not "
+    def get_template(self):
+        logger.warn("TemplateManager.get_template called but was not "
                     "implemented")
 
     def get_templates(self):
@@ -28,61 +28,82 @@ class GithubManager(TemplateManager):
     def __init__(self, options):
         self._github_options = options.github
         self._client = self.get_client()
+        self._repo_org = self._github_options.organization
+        self._metadata_file = self._github_options.metadata_file
+        self._template_file = self._github_options.template_file
+
+    def get_client(self):
+        return github.Github(base_url=self._github_options.api_base,
+                             user_agent="fusion")
 
     def __str__(self):
-        return "GithubManager: %s, %s, %s" % (
-            self._github_options.username,
-            self._github_options.template_catalog_path,
-            self._github_options.repository_name)
+        return "GithubManager: %s" % self._repo_org
 
     def __repr__(self):
         return self.__str__()
 
-    def get_client(self):
-        return github.Github(self._github_options.username,
-                             self._github_options.password,
-                             user_agent=self._github_options.username)
-
     @cache.Cache(store=TEMPLATES, backing_store=MEMCACHE)
-    def get_catalog(self):
-        repo = self._get_repository()
-        file_content = repo.get_file_contents(
-            self._github_options.template_catalog_path).content
-        decoded_content = base64.b64decode(file_content)
-        return decoded_content
-
-    @cache.Cache(store=TEMPLATES, backing_store=MEMCACHE)
-    def get_templates(self, with_meta):
+    def get_templates(self, refs, with_meta):
+        """
+        Gets all templates owned by self._repo_org organization
+        :param refs: refs to fetch
+        :param with_meta: include meta info or not
+        :return:
+        """
         templates = {}
-        catalog = self.get_catalog()
-        catalog = json.loads(catalog)
-
+        org = self._get_repo_owner()
+        repos = org.get_repos()
         pool = greenpool.GreenPile()
-        for template_info in catalog['templates']:
-            pool.spawn(self._get_template, template_info, with_meta)
+        for ref in refs:
+            for repo in repos:
+                pool.spawn(self._get_template, repo, ref, with_meta)
         for result in pool:
-            templates.update(result)
+            if result:
+                templates.update(result)
         return templates
 
     @cache.Cache(store=TEMPLATES, backing_store=MEMCACHE)
-    def get_template(self, template_id, with_meta):
-        catalog = self.get_catalog()
-        catalog = json.loads(catalog)
-        for template_info in catalog['templates']:
-            if template_info.get("id") == template_id:
-                return self._get_template(template_info, with_meta)
+    def get_template(self, repo_name, ref, with_meta):
+        org = self._get_repo_owner()
+        repo = org.get_repo(repo_name)
+        return self._get_template(repo, ref, with_meta)
 
-    def _get_template(self, template_info, with_meta=False):
-        template_response = urlfetch.get(template_info.get('url'))
-        template = yaml.load(template_response)
-        if with_meta and template_info.get('meta_url'):
-            metadata_response = urlfetch.get(template_info.get('meta_url'))
-            metadata = yaml.load(metadata_response)
-            template.update(metadata)
-        return {template_info.get('id'): template}
+    def _get_template(self, repo, ref, with_meta):
+        try:
+            template = self._get_file_from_repo(repo, ref, self._template_file)
+            if template:
+                rid = "%s:%s" % (str(repo.id), ref)
+                if with_meta:
+                    metadata = self._get_file_from_repo(repo, ref,
+                                                        self._metadata_file)
+                    template.update(metadata)
+                return {rid: template}
+        except GithubException:
+            logger.error("Unexpected error getting template from repo %s",
+                         repo.clone_url, exc_info=True)
+        return None
 
-    def _get_user(self):
-        return self._client.get_user()
+    @staticmethod
+    def _get_file_from_repo(repo, ref, file_name):
+        try:
+            encoded_file = repo.get_file_contents(file_name, ref=ref)
+            if encoded_file and encoded_file.content:
+                file_content = base64.b64decode(encoded_file.content)
+                return yaml.load(file_content)
+        except (yaml.scanner.ScannerError, yaml.parser.ParserError):
+            logger.warn("Template '%s' has invalid YAML", repo.clone_url)
+        return {}
 
-    def _get_repository(self):
-        return self._get_user().get_repo(self._github_options.repository_name)
+    def _get_repo_owner(self):
+        """Return the user or organization owning the repo."""
+        if self._repo_org:
+            try:
+                return self._client.get_organization(self._repo_org)
+            except GithubException:
+                logger.debug("Could not retrieve org information for %s; "
+                             "trying users", self._repo_org, exc_info=True)
+                try:
+                    return self._github.get_user(self._repo_org)
+                except GithubException:
+                    logger.warn("Could not find user or org %s.",
+                                self._repo_org)
