@@ -1,6 +1,7 @@
 import mock
 import unittest
 import pylibmc
+import datetime
 
 from fusion.common.cache_backing_store import (
     FileSystemBackingStore,
@@ -152,6 +153,34 @@ class RedisBackingStoreTest(unittest.TestCase):
         store = RedisBackingStore(60, mock_client)
         store.cache("get_templates", "content")
 
+    @mock.patch.object(datetime, 'datetime')
+    @mock.patch.object(datetime, 'timedelta')
+    def test_get_birthday(self, mock_timedelta, mock_datetime):
+        mock_client = mock.Mock()
+        mock_datetime.now.return_value=100
+        mock_timedelta.return_value=30
+        mock_client.ttl = mock.Mock(return_value=20)
+        store = RedisBackingStore(60, mock_client)
+
+        birthday = store.get_birthday("key")
+        self.assertEquals(70, birthday)
+
+        mock_client.ttl.assert_called_once_with("key")
+        mock_timedelta.assert_called_once_with(seconds=20)
+
+    def test_get_birthday_no_key_in_cache(self):
+        mock_client = mock.Mock()
+        mock_client.ttl = mock.Mock(side_effect=[-1, -2])
+        store = RedisBackingStore(60, mock_client)
+
+        birthday = store.get_birthday("key")
+        self.assertIsNone(birthday)
+        birthday = store.get_birthday("key")
+        self.assertIsNone(birthday)
+
+        self.assertEquals(2, mock_client.ttl.call_count)
+        calls = [mock.call("key"), mock.call("key")]
+        mock_client.ttl.assert_has_calls(calls)
 
 class MemcacheBackingStoreTest(unittest.TestCase):
     @mock.patch('calendar.timegm')
