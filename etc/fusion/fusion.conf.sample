@@ -1,12 +1,12 @@
 [DEFAULT]
 
 #
-# Options defined in heat.common.config
+# Options defined in fusion.common.config
 #
 # Name of the engine node. This can be an opaque identifier.It
 # is not necessarily a hostname, FQDN, or IP address. (string
 # value)
-#host=heat
+#host=fusion
 
 
 [fusion_api]
@@ -18,11 +18,12 @@ bind_host=127.0.0.1
 bind_port=8004
 
 [github]
-username = ""
-password = ""
-repository_name = "heat-templates"
-template_catalog_path = "catalogs/prod_catalog.json"
+api_base=https://api.github.com
+organization="heat-templates"
+template_file=heat.template
+metadata_file=heat.metadata
 
 [cache]
 default_timeout=3600
 cache_root="/var/local/fusion/cache"
+memcache_servers="127.0.0.1"

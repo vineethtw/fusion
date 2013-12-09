@@ -129,27 +129,19 @@ class TemplateController(object):
         self._options = options
         self._manager = managers.GithubManager(options)
 
-    def get_catalog(self, req):
-        """
-        Gets template catalog
-        """
-        catalog = self._manager.get_catalog()
-        return catalog
-
     def get_templates(self, req):
         """
         Gets all templates
         """
         with_meta = True if 'with_meta' in req.params else False
-        return self._manager.get_templates(with_meta).__str__()
+        return self._manager.get_templates(['stable'], with_meta).__str__()
 
     def get_template(self, req, template_id):
         """
         Get template
         """
         with_meta = True if 'with_meta' in req.params else False
-        template_id = int(template_id)
-        template = self._manager.get_template(template_id, with_meta)
+        template = self._manager.get_template('master', with_meta)
         if not template:
             return exc.HTTPNotFound()
         return template.__str__()

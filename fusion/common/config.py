@@ -47,18 +47,18 @@ service_opts = [
 
 github_group = cfg.OptGroup('github')
 github_opts = [
-    cfg.StrOpt('username',
-               default="not_defined",
-               help="Github Username"),
-    cfg.StrOpt('password',
-               default="not_defined",
-               help="Github Password"),
-    cfg.StrOpt('repository_name',
+    cfg.StrOpt('api_base',
+               default="https://api.github.com",
+               help="Github API base path"),
+    cfg.StrOpt('organization',
                default="",
-               help="Github repository where templates are stored"),
-    cfg.StrOpt('template_catalog_path',
+               help="organization owning all the templates"),
+    cfg.StrOpt('template_file',
                default="",
-               help="Catalog path")
+               help="name of the template file"),
+    cfg.StrOpt('metadata_file',
+               default="",
+               help="name of the metadata file")
 ]
 
 cache_group = cfg.OptGroup('cache')
