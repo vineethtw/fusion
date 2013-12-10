@@ -3,7 +3,7 @@ import yaml
 
 from eventlet import greenpool
 import github
-from github import GithubException
+from github import GithubException, UnknownObjectException
 
 from fusion.common import cache
 from fusion.common.cache_backing_store import MEMCACHE
@@ -64,9 +64,15 @@ class GithubManager(TemplateManager):
 
     @cache.Cache(store=TEMPLATES, backing_store=MEMCACHE)
     def get_template(self, repo_name, ref, with_meta):
-        org = self._get_repo_owner()
-        repo = org.get_repo(repo_name)
-        return self._get_template(repo, ref, with_meta)
+        try:
+            org = self._get_repo_owner()
+            repo = org.get_repo(repo_name)
+            return self._get_template(repo, ref, with_meta)
+        except UnknownObjectException:
+            logger.warn("Repo %ss does not exist", repo_name)
+        except GithubException:
+            logger.error("Unexpected error getting template from repo %s",
+                         repo.clone_url, exc_info=True)
 
     def _get_template(self, repo, ref, with_meta):
         try:

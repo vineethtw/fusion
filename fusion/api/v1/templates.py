@@ -136,12 +136,13 @@ class TemplateController(object):
         with_meta = True if 'with_meta' in req.params else False
         return self._manager.get_templates(['stable'], with_meta).__str__()
 
-    def get_template(self, req, template_id):
+    def get_template(self, req, template_name):
         """
         Get template
         """
         with_meta = True if 'with_meta' in req.params else False
-        template = self._manager.get_template('master', with_meta)
+        template = self._manager.get_template(template_name, 'master',
+                                              with_meta)
         if not template:
             return exc.HTTPNotFound()
         return template.__str__()
