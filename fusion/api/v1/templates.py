@@ -134,7 +134,7 @@ class TemplateController(object):
         Gets all templates
         """
         with_meta = True if 'with_meta' in req.params else False
-        return self._manager.get_templates(['stable'], with_meta).__str__()
+        return self._manager.get_templates(['stable'], with_meta)
 
     def get_template(self, req, template_name):
         """
@@ -145,7 +145,7 @@ class TemplateController(object):
                                               with_meta)
         if not template:
             return exc.HTTPNotFound()
-        return template.__str__()
+        return template
 
     def parse_template(self, req, body):
         data = InstantiationData(body)
@@ -160,6 +160,6 @@ def create_resource(options):
     Templates resource factory method.
     """
     deserializer = wsgi.JSONRequestDeserializer()
-    serializer = wsgi.JSONResponseSerializer
+    serializer = wsgi.JSONResponseSerializer()
     return wsgi.Resource(TemplateController(options), deserializer, serializer)
 

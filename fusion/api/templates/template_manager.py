@@ -109,7 +109,7 @@ class GithubManager(TemplateManager):
                 logger.debug("Could not retrieve org information for %s; "
                              "trying users", self._repo_org, exc_info=True)
                 try:
-                    return self._github.get_user(self._repo_org)
+                    return self._client.get_user(self._repo_org)
                 except GithubException:
                     logger.warn("Could not find user or org %s.",
                                 self._repo_org)

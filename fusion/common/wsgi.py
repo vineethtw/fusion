@@ -498,7 +498,8 @@ class JSONResponseSerializer(object):
 
     def to_json(self, data):
         def sanitizer(obj):
-            if isinstance(obj, datetime.datetime):
+            if (isinstance(obj, datetime.datetime) or isinstance(
+                    obj, datetime.date)):
                 return obj.isoformat()
             return obj
 
