@@ -134,7 +134,7 @@ class TemplateController(object):
         Gets all templates
         """
         with_meta = True if 'with_meta' in req.params else False
-        return self._manager.get_templates(['stable'], with_meta)
+        return self._manager.get_templates(['master'], with_meta)
 
     def get_template(self, req, template_name):
         """

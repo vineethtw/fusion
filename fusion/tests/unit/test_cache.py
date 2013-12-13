@@ -18,7 +18,7 @@ class CacheTests(unittest.TestCase):
         # current time is within the age
         mock_timegm.return_value = 10
         _cache = cache.Cache(timeout=120, store={"key": (10, "data")})
-        returned = _cache.try_cache("key")
+        returned = _cache.get("key")
         self.assertEquals(returned, "data")
 
     @mock.patch.object(calendar, "timegm")
@@ -32,7 +32,7 @@ class CacheTests(unittest.TestCase):
         mock_backing_store_create.return_value = mock_backing_store
         _cache = cache.Cache(timeout=120, store={"key": (10, "data")},
                              backing_store=mock_backing_store)
-        returned = _cache.try_cache("key")
+        returned = _cache.get("key")
         #need to make a fresh call
         self.assertEquals(returned, None)
         self.assertFalse(mock_backing_store.retrieve.called)
@@ -51,8 +51,8 @@ class CacheTests(unittest.TestCase):
         mock_backingstore_create.return_value = mock_backing_store
         _cache = cache.Cache(timeout=120,
                              backing_store=mock_backing_store)
-        backend_store_result = _cache.try_cache("key")
-        in_memory_result = _cache.try_cache("key")
+        backend_store_result = _cache.get("key")
+        in_memory_result = _cache.get("key")
         self.assertEquals(backend_store_result, "from_backing_store")
         self.assertEquals(in_memory_result, "from_backing_store")
         mock_backing_store.retrieve.assert_called_once_with("key")
@@ -74,8 +74,8 @@ class CacheTests(unittest.TestCase):
         mock_backingstore_create.return_value = mock_backing_store
         _cache = cache.Cache(timeout=120,
                              backing_store=mock_backing_store)
-        backend_store_result = _cache.try_cache("key")
-        in_memory_result = _cache.try_cache("key")
+        backend_store_result = _cache.get("key")
+        in_memory_result = _cache.get("key")
         self.assertEquals(backend_store_result, "from_backing_store")
         self.assertEquals(in_memory_result, "from_backing_store")
         mock_backing_store.retrieve.assert_called_once_with("key")
@@ -94,7 +94,7 @@ class CacheTests(unittest.TestCase):
         mock_backingstore_create.return_value = mock_backing_store
         _cache = cache.Cache(timeout=120, store={"key": (10, "data")},
                              backing_store=mock_backing_store)
-        returned = _cache.try_cache("key")
+        returned = _cache.get("key")
         self.assertEquals(returned, None)
 
     def test_caching_disabled_when_cache_conf_not_available(self):
@@ -113,12 +113,12 @@ class CacheTests(unittest.TestCase):
         _cache = cache.Cache()
         _wrapped_func = _cache(_func)
 
-        _cache.try_cache = mock.MagicMock(return_value="cached_data")
+        _cache.get = mock.MagicMock(return_value="cached_data")
 
         result = _wrapped_func()
         self.assertEquals("cached_data", result)
 
-        _cache.try_cache.assert_called_once_with("('function_name', (), ())")
+        _cache.get.assert_called_once_with("('function_name', (), ())")
 
     @mock.patch.object(calendar, "timegm")
     def test_updates_only_in_memory_cache_when_try_cache_fails(self, timegm):
@@ -129,7 +129,7 @@ class CacheTests(unittest.TestCase):
         _cache = cache.Cache()
         _wrapped_func = _cache(_func)
 
-        _cache.try_cache = mock.MagicMock(return_value=None)
+        _cache.get = mock.MagicMock(return_value=None)
 
         result = _wrapped_func()
         self.assertEquals("result_from_a_fresh_call", result)
@@ -138,7 +138,7 @@ class CacheTests(unittest.TestCase):
         self.assertTrue(cache_key in _cache._store)
         self.assertEquals(("time", "result_from_a_fresh_call"),
                           _cache._store[cache_key])
-        _cache.try_cache.assert_called_once_with(cache_key)
+        _cache.get.assert_called_once_with(cache_key)
 
     @mock.patch.object(calendar, "timegm")
     @mock.patch.object(BackingStore, "create")
@@ -153,7 +153,7 @@ class CacheTests(unittest.TestCase):
         _cache = cache.Cache()
         _wrapped_func = _cache(_func)
 
-        _cache.try_cache = mock.MagicMock(return_value=None)
+        _cache.get = mock.MagicMock(return_value=None)
 
         result = _wrapped_func()
         self.assertEquals("result_from_a_fresh_call", result)
@@ -162,7 +162,7 @@ class CacheTests(unittest.TestCase):
         self.assertTrue(cache_key in _cache._store)
         self.assertEquals(("time", "result_from_a_fresh_call"), _cache._store[
             cache_key])
-        _cache.try_cache.assert_called_once_with(cache_key)
+        _cache.get.assert_called_once_with(cache_key)
         backing_store.cache.assert_called_once_with(
             cache_key, "result_from_a_fresh_call")
 
