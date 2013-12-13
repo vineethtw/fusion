@@ -1,10 +1,8 @@
 import cPickle as pickle
-import calendar
 import json
 import os
 import pylibmc
 import redis
-import time
 
 from fusion.common.timeutils import json_handler
 from fusion.openstack.common import log as logging
@@ -60,17 +58,19 @@ class BackingStore(object):
         logger.warn("Cache.try_cache called with cache_key %s, but was not "
                     "implemented", key)
 
-    def get_birthday(self, key):
-        logger.warn("Cache.try_cache called with key %s, but was not "
-                    "implemented", key)
-
-    def expired(self, key):
-        logger.warn("Cache.expired called with key %s, but was not "
-                    "implemented", key)
-
     def exists(self, key):
         logger.warn("Cache.try_cache called with key %s, but was not "
                     "implemented", key)
+
+    @staticmethod
+    def encode(data):
+        """Encode python data into format we can restore from Redis."""
+        return pickle.dumps(data, pickle.HIGHEST_PROTOCOL)
+
+    @staticmethod
+    def decode(data):
+        """Decode our python data from the Redis string."""
+        return pickle.loads(data)
 
 
 class RedisBackingStore(BackingStore):
@@ -81,14 +81,9 @@ class RedisBackingStore(BackingStore):
     def exists(self, key):
         return self._redis_client.exists(key)
 
-    def expired(self, key):
-        birthday, _ = self._retrieve(key)
-        return calendar.timegm(time.gmtime()) - birthday >= self._max_age
-
     def cache(self, key, data):
         try:
-            birthday = calendar.timegm(time.gmtime())
-            self._redis_client.set(key, self._encode((birthday, data)))
+            self._redis_client.set(key, self.encode(data))
         except ConnectionError as exc:
             logger.warn("Error connecting to Redis: %s", exc)
         except Exception as exc:
@@ -96,36 +91,18 @@ class RedisBackingStore(BackingStore):
                         exc)
 
     def retrieve(self, key):
-        _, value = self._retrieve(key)
-        return value
-
-    def _retrieve(self, key):
         try:
             result = self._redis_client.get(key)
         except ConnectionError as exc:
             logger.warn("Error connecting to Redis: %s", exc)
-            return None, None
+            return None
         except Exception as exc:
             logger.warn("Error accesing redis backing store: %s", exc)
-            return None, None
+            return None
         if result:
-            return self._decode(result)
+            return self.decode(result)
         else:
             raise KeyError("Key %s not found" % key)
-
-    def get_birthday(self, key):
-        birthday, _ = self._retrieve(key)
-        return birthday
-
-    @staticmethod
-    def _encode(data):
-        """Encode python data into format we can restore from Redis."""
-        return pickle.dumps(data, pickle.HIGHEST_PROTOCOL)
-
-    @staticmethod
-    def _decode(data):
-        """Decode our python data from the Redis string."""
-        return pickle.loads(data)
 
 
 class FileSystemBackingStore(BackingStore):
@@ -138,14 +115,14 @@ class FileSystemBackingStore(BackingStore):
             try:
                 with open(self._cache_file(key), 'r') as cache:
                     contents = cache.read()
-                return json.loads(contents)
+                return self.decode(contents)
             except IOError:
                 logger.warn("Error reading disk cache", exc_info=True)
         else:
             raise KeyError("Key %s not found" % key)
 
     def cache(self, key, data):
-        if not self.exists(key):
+        if not os.path.exists(self._cache_root):
             try:
                 os.makedirs(self._cache_root, 0o766)
             except (OSError, IOError):
@@ -153,28 +130,15 @@ class FileSystemBackingStore(BackingStore):
                 return
         try:
             with open(self._cache_file(key), 'w') as cache:
-                cache.write(json.dumps(data, default=json_handler))
+                cache.write(self.encode(data))
         except IOError:
             logger.warn("Error updating disk cache", exc_info=True)
 
     def _cache_file(self, cache_key):
         return os.path.join(self._cache_root, ".%s_cache" % cache_key)
 
-    def get_birthday(self, key):
-        if self.exists(key):
-            return os.path.getmtime(self._cache_file(key))
-        else:
-            raise KeyError("Key %s not found" % key)
-
     def exists(self, key):
         return os.path.exists(self._cache_file(key))
-
-    def expired(self, key):
-        if self.exists:
-            birthday = self.get_birthday(key)
-            return time.time() - birthday >= self._max_age
-        else:
-            raise KeyError("Key %s not found" % key)
 
 
 class MemcacheBackingStore(BackingStore):
@@ -182,19 +146,9 @@ class MemcacheBackingStore(BackingStore):
         self.memcache_client = memcache_client
         super(MemcacheBackingStore, self).__init__(max_age)
 
-    def retrieve(self, key):
-        _, data = self._retrieve(key)
-        return data
-
-    def get_birthday(self, key):
-        birthday, _ = self._retrieve(key)
-        if birthday:
-            return birthday
-
     def cache(self, key, data):
         try:
-            birthday = calendar.timegm(time.gmtime())
-            self.memcache_client.set(key, (birthday, data))
+            self.memcache_client.set(key, data)
         except pylibmc.Error as exc:
             logger.warn("Error while retrieving value from memcache: %s", exc)
         except Exception as exc:
@@ -202,7 +156,7 @@ class MemcacheBackingStore(BackingStore):
 
     def exists(self, key):
         try:
-            _, data = self._retrieve(key)
+            data = self.retrieve(key)
             if data:
                 return True
             else:
@@ -210,20 +164,16 @@ class MemcacheBackingStore(BackingStore):
         except KeyError:
             return False
 
-    def expired(self, key):
-        birthday, data = self._retrieve(key)
-        return calendar.timegm(time.gmtime()) - birthday >= self._max_age
-
-    def _retrieve(self, key):
+    def retrieve(self, key):
         try:
             data = self.memcache_client.get(key)
         except pylibmc.Error as exc:
             logger.warn("Error while retrieving value from memcache: %s",
                         exc)
-            return None, None
+            return None
         except Exception as exc:
             logger.warn("Error accesing memcache backing store: %s", exc)
-            return None, None
+            return None
         if data:
             return data
         else:
