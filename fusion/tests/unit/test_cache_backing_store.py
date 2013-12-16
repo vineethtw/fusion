@@ -1,7 +1,6 @@
 import mock
 import unittest
 import pylibmc
-import datetime
 
 from fusion.common.cache_backing_store import (
     FileSystemBackingStore,
@@ -18,21 +17,20 @@ class FileSystemBackingStoreTest(unittest.TestCase):
         cfg.CONF = mock.Mock(cache=mock.Mock(cache_root=self.cache_root))
         self.cache_file_path = "%s/.get_templates_cache" % self.cache_root
 
-    @mock.patch('json.loads')
     @mock.patch('__builtin__.open')
     @mock.patch('os.path.exists')
-    def test_retrieve_for_existing_key(self, mock_path_exists, mock_open,
-                                       mock_json_load):
+    def test_retrieve_for_existing_key(self, mock_path_exists, mock_open):
         mock_path_exists.return_value = True
         mock_file_handle = mock_open.return_value.__enter__.return_value
-        mock_file_handle.read.return_value = "contents"
+        mock_file_handle.read.return_value = \
+            "\x80\x02}q\x01U\x03fooq\x02U\x03barq\x03s."
 
         store = FileSystemBackingStore(60)
-        store.retrieve("get_templates")
+        result = store.retrieve("get_templates")
+        self.assertDictEqual(result, {"foo": "bar"})
 
         mock_path_exists.assert_called_once_with(self.cache_file_path)
         self.assertTrue(mock_file_handle.read.called)
-        mock_json_load.assert_called_once_with("contents")
         mock_open.assert_called_once_with("/cache/.get_templates_cache", "r")
 
     @mock.patch('os.path.exists')
@@ -67,7 +65,8 @@ class FileSystemBackingStoreTest(unittest.TestCase):
         store.cache("get_templates", {"foo": "bar"})
 
         mock_makedirs.assert_called_once_with(self.cache_root, 0o766)
-        mock_file_handle.write.assert_called_once_with('{"foo": "bar"}')
+        mock_file_handle.write.assert_called_once_with(
+            '\x80\x02}q\x01U\x03fooq\x02U\x03barq\x03s.')
 
     @mock.patch('__builtin__.open')
     @mock.patch('os.makedirs')
@@ -81,7 +80,8 @@ class FileSystemBackingStoreTest(unittest.TestCase):
         store.cache("get_templates", {"foo": "bar"})
 
         self.assertFalse(mock_makedirs.called)
-        mock_file_handle.write.assert_called_once_with('{"foo": "bar"}')
+        mock_file_handle.write.assert_called_once_with(
+            '\x80\x02}q\x01U\x03fooq\x02U\x03barq\x03s.')
 
     @mock.patch('os.makedirs')
     @mock.patch('os.path.exists')
@@ -101,68 +101,6 @@ class FileSystemBackingStoreTest(unittest.TestCase):
 
         store = FileSystemBackingStore(60)
         store.cache("get_templates", {"foo": "bar"})
-
-    @mock.patch('os.path.getmtime')
-    @mock.patch('os.path.exists')
-    def test_get_birthday(self, mock_path_exists, mock_getmtime):
-        mock_getmtime.return_value = 10
-        mock_path_exists.return_value = True
-        store = FileSystemBackingStore(60)
-
-        self.assertEqual(10, store.get_birthday("get_templates"))
-        mock_getmtime.assert_called_once_with(self.cache_file_path)
-        self.assertTrue(mock_path_exists.called)
-
-    @mock.patch('os.path.exists')
-    def test_get_birthday_for_invalid_key(self, mock_path_exists):
-        mock_path_exists.return_value = False
-        store = FileSystemBackingStore(60)
-
-        self.assertRaises(KeyError, store.get_birthday, "get_templates")
-        self.assertTrue(mock_path_exists.called)
-
-    @mock.patch('time.time')
-    @mock.patch('os.path.getmtime')
-    @mock.patch('os.path.exists')
-    def test_expired_cache(self, mock_path_exists, mock_getmtime, mock_time):
-        mock_time.return_value = 100
-        mock_getmtime.return_value = 10
-        mock_path_exists.return_value = True
-        store = FileSystemBackingStore(60)
-
-        self.assertTrue(store.expired("get_templates"))
-        mock_getmtime.assert_called_once_with(self.cache_file_path)
-        self.assertTrue(mock_path_exists.called)
-        self.assertTrue(mock_time.called)
-
-    @mock.patch('time.time')
-    @mock.patch('os.path.getmtime')
-    @mock.patch('os.path.exists')
-    def test_valid_cache(self, mock_path_exists, mock_getmtime, mock_time):
-        mock_time.return_value = 50
-        mock_getmtime.return_value = 10
-        mock_path_exists.return_value = True
-        store = FileSystemBackingStore(60)
-
-        self.assertFalse(store.expired("get_templates"))
-        mock_getmtime.assert_called_once_with(self.cache_file_path)
-        self.assertTrue(mock_path_exists.called)
-        self.assertTrue(mock_time.called)
-
-    @mock.patch('time.time')
-    @mock.patch('os.path.getmtime')
-    @mock.patch('os.path.exists')
-    def test_expired_for_invalid_key(self, mock_path_exists, mock_getmtime,
-                                     mock_time):
-        mock_time.return_value = 50
-        mock_getmtime.return_value = 10
-        mock_path_exists.return_value = True
-        store = FileSystemBackingStore(60)
-
-        self.assertFalse(store.expired("get_templates"))
-        mock_getmtime.assert_called_once_with(self.cache_file_path)
-        self.assertTrue(mock_path_exists.called)
-        self.assertTrue(mock_time.called)
 
     @mock.patch('os.path.exists')
     def test_exists(self, mock_path_exists):
@@ -188,7 +126,7 @@ class RedisBackingStoreTest(unittest.TestCase):
 
         store = RedisBackingStore(60, client)
         result = store.retrieve("get_templates")
-        self.assertEqual("get_templates", result)
+        self.assertEqual((10, "get_templates"), result)
         client.get.assert_called_once_with("get_templates")
 
     def test_retrieve_for_invalid_key(self):
@@ -214,40 +152,19 @@ class RedisBackingStoreTest(unittest.TestCase):
         store = RedisBackingStore(60, client)
         self.assertEqual(None, store.retrieve("get_templates"))
 
-    @mock.patch('calendar.timegm')
-    def test_cache(self, mock_timegm):
-        mock_timegm.return_value = 10
+    def test_cache(self):
         mock_client = mock.Mock()
         store = RedisBackingStore(60, mock_client)
         store.cache("get_templates", "content")
 
         mock_client.set.assert_called_once_with(
-            "get_templates", "\x80\x02K\nU\x07contentq\x01\x86q\x02.")
-        self.assertTrue(mock_timegm.called)
+            "get_templates", "\x80\x02U\x07contentq\x01.")
 
     def test_cache_exc_handling(self):
         mock_client = mock.Mock()
         mock_client.set.side_effect = Exception("message")
         store = RedisBackingStore(60, mock_client)
         store.cache("get_templates", "content")
-
-    def test_get_birthday(self):
-        client = mock.Mock()
-        client.get.return_value = "\x80\x02K\nU\rget_templatesq\x01\x86q\x02."
-
-        store = RedisBackingStore(60, client)
-        result = store.get_birthday("get_templates")
-        self.assertEqual(10, result)
-        client.get.assert_called_once_with("get_templates")
-
-    def test_get_birthday_for_invalid_key(self):
-        client = mock.Mock()
-        client.get.return_value = None
-
-        store = RedisBackingStore(60, client)
-        self.assertRaises(KeyError, store.get_birthday, "get_templates")
-
-        client.get.assert_called_once_with("get_templates")
 
     def test_exists(self):
         client = mock.Mock()
@@ -258,39 +175,6 @@ class RedisBackingStoreTest(unittest.TestCase):
         self.assertTrue(store.exists("get_templates"))
         client.exists.assert_called_once_with("get_templates")
 
-    @mock.patch('calendar.timegm')
-    def test_expired_cache(self, mock_timegm):
-        mock_timegm.return_value = 100
-        client = mock.Mock()
-        client.get.return_value = "\x80\x02K\nU\rget_templatesq\x01\x86q\x02."
-
-        store = RedisBackingStore(60, client)
-        result = store.expired("get_templates")
-
-        self.assertTrue(result)
-        client.get.assert_called_once_with("get_templates")
-
-    @mock.patch('calendar.timegm')
-    def test_valid_cache(self, mock_timegm):
-        mock_timegm.return_value = 50
-        client = mock.Mock()
-        client.get.return_value = "\x80\x02K\nU\rget_templatesq\x01\x86q\x02."
-
-        store = RedisBackingStore(60, client)
-        result = store.expired("get_templates")
-
-        self.assertFalse(result)
-        client.get.assert_called_once_with("get_templates")
-
-    def test_expired_for_invalid_key(self):
-        client = mock.Mock()
-        client.get.return_value = None
-
-        store = RedisBackingStore(60, client)
-        self.assertRaises(KeyError, store.expired, "get_templates")
-
-        client.get.assert_called_once_with("get_templates")
-
 
 class MemcacheBackingStoreTest(unittest.TestCase):
     def test_retrieve(self):
@@ -300,7 +184,7 @@ class MemcacheBackingStoreTest(unittest.TestCase):
         store = MemcacheBackingStore(60, client)
         result = store.retrieve("get_templates")
 
-        self.assertEqual("content", result)
+        self.assertEqual((10, "content"), result)
         client.get.assert_called_once_with("get_templates")
 
     def test_retrieve_for_invalid_key(self):
@@ -330,19 +214,13 @@ class MemcacheBackingStoreTest(unittest.TestCase):
 
         self.assertIsNone(result)
 
-    @mock.patch('calendar.timegm')
-    @mock.patch('time.gmtime')
-    def test_cache(self, mock_gmtime, mock_timegm):
+    def test_cache(self):
         client = mock.Mock()
-        mock_gmtime.return_value = 10
-        mock_timegm.return_value = 20
 
         store = MemcacheBackingStore(60, client)
         store.cache("get_templates", "content")
 
-        client.set.assert_called_with("get_templates", (20, "content"))
-        self.assertTrue(mock_gmtime.called)
-        mock_timegm.assert_called_once_with(10)
+        client.set.assert_called_with("get_templates", "content")
 
     def test_cache_pylibmc_exc_handling(self):
         client = mock.Mock()
@@ -357,20 +235,6 @@ class MemcacheBackingStoreTest(unittest.TestCase):
 
         store = MemcacheBackingStore(60, client)
         store.cache("get_templates", "content")
-
-    def test_get_birthday(self):
-        client = mock.Mock()
-        client.get.return_value = (10, "foo")
-
-        store = MemcacheBackingStore(60, client)
-        self.assertEqual(10, store.get_birthday("get_templates"))
-
-    def test_get_birthday_for_invalid_key(self):
-        client = mock.Mock()
-        client.get.return_value = None
-
-        store = MemcacheBackingStore(60, client)
-        self.assertRaises(KeyError, store.get_birthday, "get_templates")
 
     def test_exists(self):
         client = mock.Mock()
@@ -389,27 +253,3 @@ class MemcacheBackingStoreTest(unittest.TestCase):
         self.assertFalse(store.exists("get_templates"))
 
         client.get.assert_called_once_with("get_templates")
-
-    @mock.patch('calendar.timegm')
-    def test_expired_cache(self, mock_timegm):
-        client = mock.Mock()
-        client.get.return_value = (10, "value")
-        mock_timegm.return_value = 100
-
-        store = MemcacheBackingStore(60, client)
-        self.assertTrue(store.expired("get_templates"))
-
-        client.get.assert_called_once_with("get_templates")
-        self.assertTrue(mock_timegm.called)
-
-    @mock.patch('calendar.timegm')
-    def test_valid_cache(self, mock_timegm):
-        client = mock.Mock()
-        client.get.return_value = (10, "value")
-        mock_timegm.return_value = 50
-
-        store = MemcacheBackingStore(60, client)
-        self.assertFalse(store.expired("get_templates"))
-
-        client.get.assert_called_once_with("get_templates")
-        self.assertTrue(mock_timegm.called)

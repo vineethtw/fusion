@@ -1,168 +1,149 @@
-import mock
-import unittest
 import calendar
 
-from fusion.common.cache_backing_store import BackingStore
+import mock
+from eventlet.green import threading
+import unittest
+
 from fusion.common import cache
+from fusion.common.cache import BACKGROUND_REFRESH
+from fusion.common.cache_backing_store import BackingStore, MEMCACHE
 from oslo.config import cfg
 
 
 class CacheTests(unittest.TestCase):
 
     def setUp(self):
-        cfg.CONF.reset()
-        cfg.CONF = mock.MagicMock()
+        cfg.CONF.__contains__ = mock.MagicMock(return_value=True)
+        BACKGROUND_REFRESH.clear()
 
     @mock.patch.object(calendar, "timegm")
-    def test_cache_cache_hit(self, mock_timegm):
-        # current time is within the age
-        mock_timegm.return_value = 10
+    def test_in_memory_cache_hit(self, mock_timegm):
+        _func = mock.Mock(__name__="key")
+        mock_timegm.return_value = 20
         _cache = cache.Cache(timeout=120, store={"key": (10, "data")})
-        returned = _cache.get("key")
-        self.assertEquals(returned, "data")
+        _cache.get_hash = mock.Mock(return_value="key")
+        _wrapped_func = _cache(_func)
+        result = _wrapped_func()
+
+        self.assertEquals(result, "data")
+        self.assertTrue(mock_timegm.called)
+        self.assertFalse(_func.called)
+
+    @mock.patch.object(BackingStore, 'create')
+    @mock.patch.object(calendar, "timegm")
+    def test_backend_store_cache_hit(self, mock_timegm, mock_create):
+        mock_backing_store = mock_create.return_value
+        mock_backing_store.exists.return_value = True
+        mock_backing_store.retrieve.side_effect = [(10, "data"), (10, "data")]
+        _func = mock.Mock(__name__="key")
+        mock_timegm.return_value = 20
+
+        in_memory_store = {}
+        _cache = cache.Cache(timeout=120, store=in_memory_store,
+                             backing_store=MEMCACHE)
+        _cache.get_hash = mock.Mock(return_value="key")
+        _wrapped_func = _cache(_func)
+        result = _wrapped_func()
+
+        self.assertEquals(result, "data")
+        self.assertEqual((10, "data"), in_memory_store["key"])
+        self.assertTrue(mock_timegm.called)
+        self.assertFalse(_func.called)
+        mock_create.assert_called_once_with(MEMCACHE, 120)
+        mock_backing_store.exists.assert_called_once_with("key")
+        mock_backing_store.retrieve.assert_has_calls([
+            mock.call('key'),
+            mock.call('key')
+        ])
+
+    @mock.patch.object(BackingStore, 'create')
+    @mock.patch.object(calendar, "timegm")
+    def test_cache_miss(self, mock_timegm, mock_create):
+        mock_backing_store = mock_create.return_value
+        mock_backing_store.exists.return_value = False
+        _func = mock.Mock(__name__="key", return_value="data")
+        mock_timegm.return_value = 20
+
+        in_memory_store = {}
+        _cache = cache.Cache(timeout=120, store=in_memory_store,
+                             backing_store=MEMCACHE)
+        _cache.get_hash = mock.Mock(return_value="key")
+        _wrapped_func = _cache(_func)
+        result = _wrapped_func()
+
+        self.assertEquals(result, "data")
+        self.assertEqual((20, "data"), in_memory_store["key"])
+        self.assertTrue(mock_timegm.called)
+        mock_create.assert_called_once_with(MEMCACHE, 120)
+        mock_backing_store.exists.assert_called_once_with("key")
+        mock_backing_store.cache.assert_called_once_with("key", (20, "data"))
 
     @mock.patch.object(calendar, "timegm")
-    @mock.patch.object(BackingStore, "create")
-    def test_in_memory_cache_has_expired_value(
-            self, mock_backing_store_create, mock_timegm):
-        # current time is way past age
-        mock_timegm.return_value = 1000
-        mock_backing_store = mock.MagicMock(retrieve=mock.MagicMock(
-            return_value="from_backing_store"))
-        mock_backing_store_create.return_value = mock_backing_store
-        _cache = cache.Cache(timeout=120, store={"key": (10, "data")},
-                             backing_store=mock_backing_store)
-        returned = _cache.get("key")
-        #need to make a fresh call
-        self.assertEquals(returned, None)
-        self.assertFalse(mock_backing_store.retrieve.called)
+    def test_expired_cache_triggers_background_refresh(self, mock_timegm):
+        _func = mock.Mock(__name__="key")
+        mock_timegm.return_value = 200
 
-    @mock.patch('time.gmtime')
-    @mock.patch.object(calendar, "timegm")
-    @mock.patch.object(BackingStore, "create")
-    def test_cache_in_memory_cache_miss_but_backing_store_has_value(
-            self, mock_backingstore_create, mock_timegm, mock_gmtime):
-        mock_gmtime.side_effect = [10, 20]
-        #current time is way past age
-        mock_timegm.side_effect = [1000, 1050]
-        mock_backing_store = mock.MagicMock(
-            retrieve=mock.MagicMock(return_value="from_backing_store"),
-            get_birthday=mock.MagicMock(return_value=None))
-        mock_backingstore_create.return_value = mock_backing_store
-        _cache = cache.Cache(timeout=120,
-                             backing_store=mock_backing_store)
-        backend_store_result = _cache.get("key")
-        in_memory_result = _cache.get("key")
-        self.assertEquals(backend_store_result, "from_backing_store")
-        self.assertEquals(in_memory_result, "from_backing_store")
-        mock_backing_store.retrieve.assert_called_once_with("key")
-        timegm_calls = [mock.call(10), mock.call(20)]
-        mock_timegm.assert_has_calls(timegm_calls)
+        in_memory_store = {"key": (10, "data")}
+        _cache = cache.Cache(timeout=120, store=in_memory_store)
+        _cache.get_hash = mock.Mock(return_value="key")
+        _cache.start_background_refresh = mock.Mock()
+        _wrapped_func = _cache(_func)
+        result = _wrapped_func()
 
-    @mock.patch('time.gmtime')
-    @mock.patch.object(calendar, "timegm")
-    @mock.patch.object(BackingStore, "create")
-    def test_cache_in_memory_cache_miss_but_backing_store_has_val_and_birthday(
-            self, mock_backingstore_create, mock_timegm, mock_gmtime):
-        #second side_effect should not be called
-        mock_gmtime.side_effect = [10,20]
-        #current time is way past age
-        mock_timegm.side_effect = [1000, 1050]
-        mock_backing_store = mock.MagicMock(
-            retrieve=mock.MagicMock(return_value="from_backing_store"),
-            get_birthday=mock.MagicMock(return_value=5000))
-        mock_backingstore_create.return_value = mock_backing_store
-        _cache = cache.Cache(timeout=120,
-                             backing_store=mock_backing_store)
-        backend_store_result = _cache.get("key")
-        in_memory_result = _cache.get("key")
-        self.assertEquals(backend_store_result, "from_backing_store")
-        self.assertEquals(in_memory_result, "from_backing_store")
-        mock_backing_store.retrieve.assert_called_once_with("key")
-        timegm_calls = [mock.call(10)]
-        self.assertEquals(_cache._store["key"], (5000,"from_backing_store"))
-        mock_timegm.assert_has_calls(timegm_calls)
-
-    @mock.patch.object(calendar, "timegm")
-    @mock.patch.object(BackingStore, "create")
-    def test_inmemory_cache_miss_and_backing_store_does_not_have_value(
-            self, mock_backingstore_create, mock_timegm):
-        #current time is way past age
-        mock_timegm.return_value = 1000
-        mock_backing_store = mock.MagicMock(retrieve=mock.MagicMock(
-            return_value=None))
-        mock_backingstore_create.return_value = mock_backing_store
-        _cache = cache.Cache(timeout=120, store={"key": (10, "data")},
-                             backing_store=mock_backing_store)
-        returned = _cache.get("key")
-        self.assertEquals(returned, None)
+        self.assertEquals(result, "data")
+        self.assertTrue(mock_timegm.called)
+        self.assertFalse(_func.called)
+        _cache.start_background_refresh.assert_called_once_with("key",
+                                                                _func, (), {})
 
     def test_caching_disabled_when_cache_conf_not_available(self):
         def look_for_cache_conf(*args, **kwargs):
             return False if args[0] == "cache" else True
 
+        cfg.CONF.reset()
+        cfg.CONF = mock.Mock()
         cfg.CONF.__contains__ = mock.Mock(side_effect=look_for_cache_conf)
         unwrapped_function = mock.Mock()
         _cache = cache.Cache()
         returned_function = _cache(unwrapped_function)
         self.assertEqual(returned_function, unwrapped_function)
 
-    def test_cache_call_method_with_a_cache_hit(self):
-        cfg.CONF.__contains__ = mock.MagicMock(return_value=True)
-        _func = mock.MagicMock(__name__="function_name")
-        _cache = cache.Cache()
-        _wrapped_func = _cache(_func)
+    @mock.patch('eventlet.spawn_n')
+    @mock.patch.object(threading, 'Lock')
+    def test_start_background_refresh(self, mock_lock, mock_spawn):
+        lock = mock_lock.return_value
+        _func = mock.Mock(__name__="key")
 
-        _cache.get = mock.MagicMock(return_value="cached_data")
+        _cache = cache.Cache(timeout=120, store={})
+        _cache.start_background_refresh("key", _func, (), {})
 
-        result = _wrapped_func()
-        self.assertEquals("cached_data", result)
+        self.assertDictEqual(BACKGROUND_REFRESH, {
+            'key': {
+                'background_thread': mock_spawn.return_value,
+                'refresh_lock': lock
+            }
+        })
+        lock.acquire.assert_called_once_with(False)
+        mock_spawn.assert_called_once_with(_cache.refresh_cache, "key",
+                                           _func, (), {})
+        self.assertTrue(lock.release.called)
 
-        _cache.get.assert_called_once_with("('function_name', (), ())")
+    @mock.patch('eventlet.spawn_n')
+    @mock.patch.object(threading, 'Lock')
+    def test_start_background_refresh_exc_handling(self, mock_lock,
+                                                   mock_spawn):
+        lock = mock_lock.return_value
+        _func = mock.Mock(__name__="key")
+        mock_spawn.side_effect = StandardError()
 
-    @mock.patch.object(calendar, "timegm")
-    def test_updates_only_in_memory_cache_when_try_cache_fails(self, timegm):
-        cfg.CONF.__contains__ = mock.MagicMock(return_value=True)
-        timegm.return_value = "time"
-        _func = mock.MagicMock(__name__="function_name",
-                               return_value="result_from_a_fresh_call")
-        _cache = cache.Cache()
-        _wrapped_func = _cache(_func)
+        _cache = cache.Cache(timeout=120, store={})
+        _cache.start_background_refresh("key", _func, (), {})
 
-        _cache.get = mock.MagicMock(return_value=None)
-
-        result = _wrapped_func()
-        self.assertEquals("result_from_a_fresh_call", result)
-
-        cache_key = "('function_name', (), ())"
-        self.assertTrue(cache_key in _cache._store)
-        self.assertEquals(("time", "result_from_a_fresh_call"),
-                          _cache._store[cache_key])
-        _cache.get.assert_called_once_with(cache_key)
-
-    @mock.patch.object(calendar, "timegm")
-    @mock.patch.object(BackingStore, "create")
-    def test_update_both_in_memory_cache_and_backingstore_when_try_cache_fails(
-            self, backing_store_create, timegm):
-        cfg.CONF.__contains__ = mock.MagicMock(return_value=True)
-        backing_store = mock.MagicMock()
-        backing_store_create.return_value = backing_store
-        timegm.return_value = "time"
-        _func = mock.MagicMock(__name__="function_name",
-                               return_value="result_from_a_fresh_call")
-        _cache = cache.Cache()
-        _wrapped_func = _cache(_func)
-
-        _cache.get = mock.MagicMock(return_value=None)
-
-        result = _wrapped_func()
-        self.assertEquals("result_from_a_fresh_call", result)
-
-        cache_key = "('function_name', (), ())"
-        self.assertTrue(cache_key in _cache._store)
-        self.assertEquals(("time", "result_from_a_fresh_call"), _cache._store[
-            cache_key])
-        _cache.get.assert_called_once_with(cache_key)
-        backing_store.cache.assert_called_once_with(
-            cache_key, "result_from_a_fresh_call")
-
+        self.assertDictEqual(BACKGROUND_REFRESH, {
+            'key': {
+                'background_thread': None,
+                'refresh_lock': lock
+            }
+        })
+        lock.acquire.assert_called_once_with(False)
+        self.assertTrue(lock.release.called)

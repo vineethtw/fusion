@@ -18,7 +18,7 @@ BACKGROUND_REFRESH = {}
 class Cache(object):
     def __init__(self, timeout=None, backing_store=None, store=None):
         self._max_age = self.__default_timeout() if not timeout else timeout
-        self._store = store or {}
+        self._store = {} if store is None else store
         self._backing_store = BackingStore.create(backing_store,
                                                   self._max_age)
 
@@ -42,27 +42,25 @@ class Cache(object):
                 return self._backing_store.exists(key)
         return False
 
-    def start_background_refresh(self, key, func, args, kwargs,
-                                 blocking=False):
+    def start_background_refresh(self, key, func, args, kwargs):
         background_stats = BACKGROUND_REFRESH.get(key, {})
         background_thread = background_stats.get('background_thread')
         refresh_lock = background_stats.get('refresh_lock', threading.Lock())
-        if background_thread is None and refresh_lock.acquire(blocking):
+        if background_thread is None and refresh_lock.acquire(False):
             try:
                 background_thread = eventlet.spawn_n(
                     self.refresh_cache, key, func, args, kwargs)
+                logger.debug("Refreshing cache for key %s", key)
+            except StandardError:
+                background_thread = None
+                logger.error("Error initiating cache refresh", exc_info=True)
+            finally:
+                refresh_lock.release()
                 background_stats.update({
                     'background_thread': background_thread,
                     'refresh_lock': refresh_lock
                 })
                 BACKGROUND_REFRESH[key] = background_stats
-                logger.debug("Refreshing cache for key %s", key)
-            except StandardError:
-                self.background = None
-                logger.error("Error initiating cache refresh", exc_info=True)
-                raise
-            finally:
-                refresh_lock.release()
         else:
             logger.debug("Cache refresh for key %s is already in progress",
                          key)
@@ -98,19 +96,14 @@ class Cache(object):
         if key in self._store:
             logger.debug("[%s] Cache hit for key %s",
                          self.__class__.__name__, key)
-            birthday, data = self._store[key]
+            _, data = self._store[key]
             return data
         elif self._backing_store:
             birthday, value = self._backing_store.retrieve(key)
-            if value:
-                logger.debug("[%s] Cache hit for key %s",
-                             self._backing_store.__class__.__name__, key)
-                birthday_backing_store = self._backing_store.get_birthday(key)
-                birthday = (calendar.timegm(time.gmtime())
-                            if not birthday_backing_store
-                            else birthday_backing_store)
-                self._store[key] = (birthday, value)
-                return value
+            logger.debug("[%s] Cache hit for key %s",
+                         self._backing_store.__class__.__name__, key)
+            self._store[key] = (birthday, value)
+            return value
         return None
 
     def update_cache(self, key, value):
