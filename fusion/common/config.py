@@ -77,11 +77,19 @@ cache_opts = [
                 help="memcache servers"),
 ]
 
+proxy_group = cfg.OptGroup('proxy')
+proxy_opts = [
+    cfg.StrOpt('heat_endpoint',
+               default=None,
+               help="Heat endpoint")
+]
+
 cfg.CONF.register_opts(service_opts)
 cfg.CONF.register_group(paste_deploy_group)
 cfg.CONF.register_opts(paste_deploy_opts, group=paste_deploy_group)
 cfg.CONF.register_opts(github_opts, group=github_group)
 cfg.CONF.register_opts(cache_opts, group=cache_group)
+cfg.CONF.register_opts(proxy_opts, group=proxy_group)
 
 
 def _get_deployment_flavor():
