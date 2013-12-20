@@ -19,7 +19,7 @@ bind_port=8004
 
 [github]
 api_base=https://api.github.com
-organization="heat-templates"
+organization=heat-templates
 template_file=heat.template
 metadata_file=heat.metadata
 

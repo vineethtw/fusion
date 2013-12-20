@@ -79,9 +79,9 @@ cache_opts = [
 
 proxy_group = cfg.OptGroup('proxy')
 proxy_opts = [
-    cfg.StrOpt('heat_endpoint',
+    cfg.StrOpt('heat_host',
                default=None,
-               help="Heat endpoint")
+               help="Heat host")
 ]
 
 cfg.CONF.register_opts(service_opts)

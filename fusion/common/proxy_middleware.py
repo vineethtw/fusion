@@ -1,5 +1,4 @@
 from paste import proxy as wsgi_proxy
-from webob import Response
 
 from fusion.common import wsgi
 from oslo.config import cfg
@@ -13,14 +12,14 @@ class ProxyMiddleware(wsgi.Middleware):
     def __init__(self, app, conf, **local_conf):
         self.app = app
         self.proxy = wsgi_proxy.make_transparent_proxy(
-            conf, cfg.CONF.proxy.heat_endpoint)
+            conf, cfg.CONF.proxy.heat_host)
         super(ProxyMiddleware, self).__init__(app)
 
     def process_request(self, req):
-        logger.warn("Entering proxy middleware")
-        routes_middlware = self.app(req)
-        matched = routes_middlware.mapper.routematch(environ=req.environ)
+        routes_middleware = self.app(req)
+        matched = routes_middleware.mapper.routematch(environ=req.environ)
         if not matched:
+            logger.warn("Proxying call to heat")
             return req.get_response(self.proxy)
 
 
