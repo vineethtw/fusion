@@ -58,7 +58,13 @@ github_opts = [
                help="name of the template file"),
     cfg.StrOpt('metadata_file',
                default="",
-               help="name of the metadata file")
+               help="name of the metadata file"),
+    cfg.StrOpt('username',
+               default="",
+               help="github username"),
+    cfg.StrOpt('password',
+               default="",
+               help="github password")
 ]
 
 cache_group = cfg.OptGroup('cache')

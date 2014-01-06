@@ -43,7 +43,9 @@ class GithubManager(TemplateManager):
         self._template_file = self._github_options.template_file
 
     def get_client(self):
-        return github.Github(base_url=self._github_options.api_base,
+        return github.Github(login_or_token=self._github_options.username,
+                             password=self._github_options.password,
+                             base_url=self._github_options.api_base,
                              user_agent="fusion")
 
     def __str__(self):
@@ -53,7 +55,7 @@ class GithubManager(TemplateManager):
         return self.__str__()
 
     def get_catalog(self):
-        return TemplateCatalog(self.get_templates(["master"], True))
+        return TemplateCatalog(self.get_templates(["master"], False))
 
     @cache.Cache(store=TEMPLATES, backing_store=MEMCACHE)
     def get_templates(self, refs, with_meta):
