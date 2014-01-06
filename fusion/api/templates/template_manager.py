@@ -23,6 +23,16 @@ class TemplateManager(object):
         logger.warn("TemplateManager.get_templates called but was not "
                     "implemented")
 
+class TemplateCatalog(object):
+    def __init__(self, templates):
+        self._templates = templates
+
+    def is_supported_template(self, template):
+        for template_id, valid_template in self._templates.iteritems():
+            if (valid_template == template):
+                return True
+
+        return False
 
 class GithubManager(TemplateManager):
     def __init__(self, options):
@@ -41,6 +51,9 @@ class GithubManager(TemplateManager):
 
     def __repr__(self):
         return self.__str__()
+
+    def get_catalog(self):
+        return TemplateCatalog(self.get_templates(["master"], True))
 
     @cache.Cache(store=TEMPLATES, backing_store=MEMCACHE)
     def get_templates(self, refs, with_meta):
