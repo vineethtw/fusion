@@ -1,7 +1,7 @@
 import unittest
 import yaml
 
-from api.templates.template_manager import TemplateCatalog
+from fusion.api.templates.template_manager import TemplateCatalog
 
 class TemplateCatalogTest(unittest.TestCase):
 
