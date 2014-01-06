@@ -1,6 +1,7 @@
 import routes
 
 from fusion.api.v1 import templates
+from fusion.api.v1 import heat_wrapper
 from fusion.common import wsgi
 
 
@@ -31,3 +32,13 @@ class API(wsgi.Router):
                                     "/templates/parse",
                                     action="parse_template",
                                     conditions={'method': 'POST'})
+
+        heat_wrapper_resource = heat_wrapper.create_resource(conf)
+        with  mapper.submapper(
+                controller=heat_wrapper_resource,
+                path_prefix="/{tenant_id}") as heat_wrapper_mapper:
+            heat_wrapper_mapper.connect("stack_create",
+                                        "/stack_create",
+                                        action="stack_create")
+
+
