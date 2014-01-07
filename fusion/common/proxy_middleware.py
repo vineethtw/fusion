@@ -1,16 +1,9 @@
+import logging
+
 from paste import proxy as wsgi_proxy
-from fusion.api.templates import template_manager as managers
-
-from fusion.db.sqlalchemy import api as db_api
-
 
 from fusion.common import wsgi
 from oslo.config import cfg
-
-import json
-import datetime
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -29,9 +22,10 @@ class ProxyMiddleware(wsgi.Middleware):
         routes_middleware = self.app(request)
         matched = routes_middleware.mapper.routematch(environ=request.environ)
         if not matched:
-            logger.warn("Proxying call to heat")
+            logger.debug("Proxying call to heat")
             response = request.get_response(self.proxy)
             return response
+
 
 def ProxyMiddleware_filter_factory(global_conf, **local_conf):
     """

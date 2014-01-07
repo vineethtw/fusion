@@ -10,6 +10,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class HeatWrapperController(object):
 
     def __init__(self, options):
@@ -39,17 +40,21 @@ class HeatWrapperController(object):
             is_supported_template = self._is_supported(template)
 
         response = req.get_response(self.proxy)
-        db_api.stack_create({'tenant': tenant_id,
-                             'stack_id': self._get_stack_id(response),
-                             'supported': is_supported_template}
-        )
+        if response.status_code == 201:
+            db_api.stack_create({
+                'tenant': tenant_id,
+                'stack_id': self._get_stack_id(response),
+                'supported': is_supported_template
+            })
         return response
 
     def _is_supported(self, template):
         return self._manager.get_catalog().is_supported_template(template)
 
     def _get_stack_id(self, response):
-        return "stack_id"
+        body_json = response.json_body
+        return body_json["stack_id"]
+
 
 def create_resource(options):
     """
