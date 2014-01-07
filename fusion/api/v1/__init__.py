@@ -34,11 +34,12 @@ class API(wsgi.Router):
                                     conditions={'method': 'POST'})
 
         heat_wrapper_resource = heat_wrapper.create_resource(conf)
-        with  mapper.submapper(
+        with mapper.submapper(
                 controller=heat_wrapper_resource,
                 path_prefix="/{tenant_id}") as heat_wrapper_mapper:
             heat_wrapper_mapper.connect("stack_create",
                                         "/stack_create",
-                                        action="stack_create")
+                                        action="stack_create",
+                                        conditions={'method': 'POST'})
 
 
