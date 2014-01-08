@@ -15,16 +15,17 @@ class ProxyMiddleware(wsgi.Middleware):
         heat_host = cfg.CONF.proxy.heat_host
         if heat_host is None:
             raise Exception("heat_host is not configured!")
-        self.proxy = wsgi_proxy.make_transparent_proxy(conf, heat_host)
+        self.proxy = wsgi_proxy.make_transparent_proxy(conf, heat_host,
+                                                       "https")
         super(ProxyMiddleware, self).__init__(app)
 
     def process_request(self, request):
-        routes_middleware = self.app(request)
-        matched = routes_middleware.mapper.routematch(environ=request.environ)
-        if not matched:
+        response = request.get_response(self.app)
+        match = request.environ.get('wsgiorg.routing_args', (None, None))[1]
+        if not match:
             logger.debug("Proxying call to heat")
             response = request.get_response(self.proxy)
-            return response
+        return response
 
 
 def ProxyMiddleware_filter_factory(global_conf, **local_conf):

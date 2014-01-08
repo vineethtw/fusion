@@ -18,7 +18,8 @@ class HeatWrapperController(object):
         heat_host = options.proxy.heat_host
         if heat_host is None:
             raise Exception("heat_host is not configured!")
-        self.proxy = wsgi_proxy.make_transparent_proxy(options, heat_host)
+        self.proxy = wsgi_proxy.make_transparent_proxy(options, heat_host,
+                                                       force_scheme="https")
         self._manager = managers.GithubManager(options)
 
     def stack_create(self, req, tenant_id, body):
@@ -53,7 +54,7 @@ class HeatWrapperController(object):
 
     def _get_stack_id(self, response):
         body_json = response.json_body
-        return body_json["stack_id"]
+        return body_json["stack"]["id"]
 
 
 def create_resource(options):

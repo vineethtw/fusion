@@ -55,7 +55,7 @@ if __name__ == '__main__':
                                        ]
         logging.setup('fusion')
 
-        app = config.load_paste_app()
+        app = config.load_paste_app('fusion-app')
 
         port = cfg.CONF.fusion_api.bind_port
         host = cfg.CONF.fusion_api.bind_host

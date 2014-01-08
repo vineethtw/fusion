@@ -28,17 +28,13 @@ class API(wsgi.Router):
                                     "/templates/{template_name}",
                                     action="get_template",
                                     conditions={'method': 'GET'})
-            template_mapper.connect("parse_template",
-                                    "/templates/parse",
-                                    action="parse_template",
-                                    conditions={'method': 'POST'})
 
         heat_wrapper_resource = heat_wrapper.create_resource(conf)
         with mapper.submapper(
                 controller=heat_wrapper_resource,
                 path_prefix="/{tenant_id}") as heat_wrapper_mapper:
             heat_wrapper_mapper.connect("stack_create",
-                                        "/stack_create",
+                                        "/stacks",
                                         action="stack_create",
                                         conditions={'method': 'POST'})
 

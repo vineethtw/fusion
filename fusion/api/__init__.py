@@ -13,3 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo.config import cfg
+import paste.urlmap
+
+CONF = cfg.CONF
+
+
+def root_app_factory(loader, global_conf, **local_conf):
+    return paste.urlmap.urlmap_factory(loader, global_conf, **local_conf)
