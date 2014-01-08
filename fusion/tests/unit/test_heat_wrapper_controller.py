@@ -23,7 +23,7 @@ class HeatWrapperControllerTest(unittest.TestCase):
         mock_catalog = manager.return_value.get_catalog.return_value
         mock_catalog.is_supported_template.return_value = True
         request.get_response.return_value = mock.MagicMock(
-            status_code=201, json_body={"stack_id": "1234"})
+            status_code=201, json_body={"stack": {"id": "1234"}})
 
         controller.stack_create(request, '10021', {'template': {}})
 
@@ -50,7 +50,7 @@ class HeatWrapperControllerTest(unittest.TestCase):
         proxy = make_proxy.return_value
         body = {'template_id': 'wordpress'}
         request.get_response.return_value = mock.MagicMock(
-            status_code=201, json_body={"stack_id": "1234"})
+            status_code=201, json_body={"stack": {"id": "1234"}})
 
         controller.stack_create(request, '10021', body)
 
@@ -63,11 +63,10 @@ class HeatWrapperControllerTest(unittest.TestCase):
             'supported': True
         })
 
-    @mock.patch.object(wsgi_proxy, 'make_transparent_proxy')
     @mock.patch.object(managers, 'GithubManager')
-    @mock.patch.object(api, 'stack_create' )
+    @mock.patch.object(api, 'stack_create')
     def test_stack_create_with_invalid_template_id(self, stack_create,
-                                                   manager, proxy):
+                                                   manager):
         options = mock.Mock(proxy=mock.Mock(heat_host="foo.com"))
         controller = HeatWrapperController(options)
         request = mock.MagicMock()
