@@ -13,10 +13,11 @@ class ProxyMiddleware(wsgi.Middleware):
     def __init__(self, app, conf, **local_conf):
         self.app = app
         heat_host = cfg.CONF.proxy.heat_host
+        heat_protocol = cfg.CONF.proxy.heat_protocol
         if heat_host is None:
             raise Exception("heat_host is not configured!")
         self.proxy = wsgi_proxy.make_transparent_proxy(conf, heat_host,
-                                                       "https")
+                                                       heat_protocol)
         super(ProxyMiddleware, self).__init__(app)
 
     def process_request(self, request):

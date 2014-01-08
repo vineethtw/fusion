@@ -23,6 +23,9 @@ organization=heat-templates
 template_file=heat.template
 metadata_file=heat.metadata
 
+[proxy]
+heat_protocol=https
+
 [cache]
 default_timeout=3600
 cache_root="/var/local/fusion/cache"

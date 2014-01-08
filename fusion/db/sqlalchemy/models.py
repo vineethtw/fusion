@@ -1,16 +1,13 @@
 import sqlalchemy
 
 from sqlalchemy.ext.declarative import declarative_base
+
 from fusion.openstack.common.db.sqlalchemy import session
 from fusion.openstack.common.db.sqlalchemy import models
 from fusion.openstack.common import uuidutils
 
-from sqlalchemy import Column, Integer, String
-
-
 BASE = declarative_base()
 get_session = session.get_session
-
 
 
 class Stack(BASE, models.ModelBase):

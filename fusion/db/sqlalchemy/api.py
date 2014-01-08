@@ -1,8 +1,9 @@
-from fusion.openstack.common.db.sqlalchemy import session as db_session
 from fusion.db.sqlalchemy import models
+from fusion.openstack.common.db.sqlalchemy import session as db_session
 
 get_engine = db_session.get_engine
 get_session = db_session.get_session
+
 
 def stack_create(values):
     stack_ref = models.Stack()

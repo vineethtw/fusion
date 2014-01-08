@@ -87,7 +87,10 @@ proxy_group = cfg.OptGroup('proxy')
 proxy_opts = [
     cfg.StrOpt('heat_host',
                default=None,
-               help="Heat host")
+               help="Heat host"),
+    cfg.StrOpt('heat_protocol',
+               default="https",
+               help="Heat Protocol")
 ]
 
 cfg.CONF.register_opts(service_opts)
@@ -159,6 +162,7 @@ def load_paste_app(app_name=None):
                              "\nGot: %(e)r") % {'app_name': app_name,
                                                 'conf_file': conf_file,
                                                 'e': e})
+
 
 def safe_get_config(group, name):
     if group not in cfg.CONF:

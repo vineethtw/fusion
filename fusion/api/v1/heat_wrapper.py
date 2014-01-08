@@ -16,10 +16,11 @@ class HeatWrapperController(object):
     def __init__(self, options):
         self._options = options
         heat_host = options.proxy.heat_host
+        heat_protocol = options.proxy.heat_protocol
         if heat_host is None:
             raise Exception("heat_host is not configured!")
         self.proxy = wsgi_proxy.make_transparent_proxy(options, heat_host,
-                                                       force_scheme="https")
+                                                       heat_protocol)
         self._manager = managers.GithubManager(options)
 
     def stack_create(self, req, tenant_id, body):

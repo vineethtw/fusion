@@ -9,38 +9,35 @@ from fusion.common.proxy_middleware import ProxyMiddleware
 
 class ProxyMiddlewareTest(unittest.TestCase):
     @mock.patch.object(wsgi_proxy, 'make_transparent_proxy')
-    @mock.patch('fusion.api.templates.template_manager.GithubManager')
-    def test_process_request_proxies_to_heat(self, manager, mock_proxy):
+    def test_process_request_proxies_to_heat(self, mock_proxy):
         cfg.CONF.reset()
         cfg.CONF = mock.Mock(proxy=mock.Mock(heat_host="foo.com"))
         app = mock.MagicMock()
         conf = mock.MagicMock()
-        req = mock.MagicMock(environ={'PATH_INFO': '1234/foo'})
-        req.get_response.return_value = "200 OK"
-        routes_middleware = app.return_value
-        routes_middleware.mapper.routematch.return_value = None
+        req = mock.MagicMock(environ={})
+        final_response = mock.MagicMock()
+        req.get_response.side_effect = [None, final_response]
 
         middleware = ProxyMiddleware(app, conf)
         response = middleware.process_request(req)
-        self.assertEqual(response, "200 OK")
 
-        mock_proxy.assert_called_once_with(conf, "foo.com")
-        app.assert_called_once_with(req)
-        req.get_response.assert_called_once_with(mock_proxy.return_value)
+        self.assertEqual(response, final_response)
+        calls = [mock.call(app), mock.call(mock_proxy.return_value)]
+        req.get_response.assert_has_calls(calls)
 
-    @mock.patch.object(wsgi_proxy, 'make_transparent_proxy')
-    @mock.patch('fusion.api.templates.template_manager.GithubManager')
-    def test_process_request_by_fusion(self, manager, mock_proxy):
+    def test_process_request_by_fusion(self):
         cfg.CONF.reset()
         cfg.CONF = mock.Mock(proxy=mock.Mock(heat_host="foo.com"))
         app = mock.MagicMock()
         conf = mock.MagicMock()
-        req = mock.MagicMock(environ={'PATH_INFO': '1234/foo'})
-        routes_middleware = app.return_value
-        routes_middleware.mapper.routematch.return_value = ("foo", "bar")
-        middleware = ProxyMiddleware(app, conf)
-        self.assertIsNone(middleware.process_request(req))
+        req = mock.MagicMock(environ={
+            'wsgiorg.routing_args': (None, "200 OK")
+        })
+        final_response = mock.MagicMock()
+        req.get_response.return_value = final_response
 
-        app.assert_called_once_with(req)
-        self.assertFalse(req.get_response.called)
-        mock_proxy.assert_called_once_with(conf, "foo.com")
+        middleware = ProxyMiddleware(app, conf)
+        response = middleware.process_request(req)
+
+        self.assertEqual(response, final_response)
+        req.get_response.assert_called_once_with(app)
