@@ -22,6 +22,7 @@ api_base=https://api.github.com
 organization=heat-templates
 template_file=heat.template
 metadata_file=heat.metadata
+default_tag=master
 
 [proxy]
 heat_protocol=https

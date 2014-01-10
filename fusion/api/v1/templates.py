@@ -41,15 +41,16 @@ class TemplateController(object):
         Gets all templates
         """
         with_meta = True if 'with_meta' in req.params else False
-        return self._manager.get_templates(['master'], with_meta)
+        tag = self._options.github.default_tag
+        return self._manager.get_templates([tag], with_meta)
 
     def get_template(self, req, template_name):
         """
         Get template
         """
         with_meta = True if 'with_meta' in req.params else False
-        template = self._manager.get_template(template_name, 'master',
-                                              with_meta)
+        tag = self._options.github.default_tag
+        template = self._manager.get_template(template_name, tag, with_meta)
         if not template:
             return exc.HTTPNotFound()
         return template
