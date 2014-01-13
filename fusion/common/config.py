@@ -65,9 +65,9 @@ github_opts = [
     cfg.StrOpt('password',
                default="",
                help="github password"),
-    cfg.StrOpt('default_tag',
-               default="master",
-               help="default tag")
+    cfg.StrOpt('default_version',
+               default="stable",
+               help="default template version")
 ]
 
 cache_group = cfg.OptGroup('cache')

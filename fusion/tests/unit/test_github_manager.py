@@ -13,10 +13,14 @@ class GithubManagerTest(unittest.TestCase):
         redis_template = """
         description: |
             Simple template to deploy Redis on a cloud server
+        version: stable
+        id: '1234'
         """
         wordpress_template = """
         description: |
             Simple template to deploy wordpress on a cloud server
+        version: stable
+        id: '2345'
         """
         github_client = mock_get_client.return_value
         mock_org = github_client.get_organization.return_value
@@ -36,8 +40,8 @@ class GithubManagerTest(unittest.TestCase):
                              template_file="heat.template"))
 
         expected_templates = {
-            "1234:stable": yaml.load(redis_template),
-            "2345:stable": yaml.load(wordpress_template)
+            "1234": yaml.load(redis_template),
+            "2345": yaml.load(wordpress_template)
         }
 
         manager = managers.GithubManager(mock_options)
@@ -64,6 +68,8 @@ class GithubManagerTest(unittest.TestCase):
         redis_template = """
         description: |
             Simple template to deploy Redis on a cloud server
+        version: stable
+        id: '1234'
         """
         redis_metadata = """
         meta: |
@@ -72,6 +78,8 @@ class GithubManagerTest(unittest.TestCase):
         wordpress_template = """
         description: |
             Simple template to deploy wordpress on a cloud server
+        version: stable
+        id: '2345'
         """
 
         github_client = mock_get_client.return_value
@@ -99,8 +107,8 @@ class GithubManagerTest(unittest.TestCase):
         redis.update(yaml.load(redis_metadata))
 
         expected_templates = {
-            "1234:stable": redis,
-            "2345:stable": yaml.load(wordpress_template)
+            "1234": redis,
+            "2345": yaml.load(wordpress_template)
         }
 
         manager = managers.GithubManager(mock_options)
@@ -136,6 +144,8 @@ class GithubManagerTest(unittest.TestCase):
         redis_template = """
         description: |
             Simple template to deploy Redis on a cloud server
+        version: stable
+        id: '1234'
         """
         redis_metadata = """
         meta: |
@@ -143,8 +153,8 @@ class GithubManagerTest(unittest.TestCase):
         """
         mock_client = mock_get_client.return_value
         mock_org = mock_client.get_organization.return_value
-        mock_repo = mock_org.get_repo.return_value
-        mock_repo.id = 1234
+        mock_repo = mock.MagicMock(id=1234)
+        mock_org.get_repos.return_value = [mock_repo]
         mock_repo.get_file_contents.side_effect = [
             mock.Mock(content="template"), mock.Mock(content="metadata")]
         mock_decode.side_effect = [redis_template, redis_metadata]
@@ -157,9 +167,9 @@ class GithubManagerTest(unittest.TestCase):
         redis_template.update(yaml.load(redis_metadata))
 
         manager = managers.GithubManager(mock_options)
-        template = manager.get_template("redis", "stable", True)
+        template = manager.get_template("1234", "stable", True)
 
-        self.assertEqual(template, {"1234:stable": redis_template})
+        self.assertEqual(template, {"1234": redis_template})
         get_calls = [
             mock.call("heat.template", ref="stable"),
             mock.call("heat.metadata", ref="stable"),
@@ -172,7 +182,7 @@ class GithubManagerTest(unittest.TestCase):
         mock_repo.get_file_contents.assert_has_calls(get_calls)
         mock_decode.assert_has_calls(decode_calls)
         mock_client.get_organization.assert_called_once_with("heat-templates")
-        mock_org.get_repo.assert_called_once_with("redis")
+        self.assertTrue(mock_org.get_repos.called)
 
     @mock.patch('base64.b64decode')
     @mock.patch.object(managers.GithubManager, 'get_client')
@@ -180,11 +190,13 @@ class GithubManagerTest(unittest.TestCase):
         redis_template = """
         description: |
             Simple template to deploy Redis on a cloud server
+        version: stable
+        id: '1234'
         """
         mock_client = mock_get_client.return_value
+        mock_repo = mock.MagicMock(id=1234)
         mock_org = mock_client.get_organization.return_value
-        mock_repo = mock_org.get_repo.return_value
-        mock_repo.id = 1234
+        mock_org.get_repos.return_value = [mock_repo]
         mock_repo.get_file_contents.side_effect = [
             mock.Mock(content="template"), mock.Mock(content="metadata")]
         mock_decode.return_value = redis_template
@@ -196,12 +208,12 @@ class GithubManagerTest(unittest.TestCase):
         redis_template = yaml.load(redis_template)
 
         manager = managers.GithubManager(mock_options)
-        template = manager.get_template("redis", "stable", False)
+        template = manager.get_template(1234, "stable", False)
 
-        self.assertEqual(template, {"1234:stable": redis_template})
+        self.assertEqual(template, {"1234": redis_template})
         self.assertTrue(mock_get_client.called)
         mock_repo.get_file_contents.assert_called_once_with("heat.template",
                                                             ref="stable")
         mock_decode.assert_called_once_with("template")
         mock_client.get_organization.assert_called_once_with("heat-templates")
-        mock_org.get_repo.assert_called_once_with("redis")
+        self.assertTrue(mock_org.get_repos.called)
