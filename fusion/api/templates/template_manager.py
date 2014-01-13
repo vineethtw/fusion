@@ -81,13 +81,17 @@ class GithubManager(TemplateManager):
         return templates
 
     @cache.Cache(store=TEMPLATES, backing_store=MEMCACHE)
-    def get_template(self, repo_name, ref, with_meta):
+    def get_template(self, template_id, ref, with_meta):
         try:
             org = self._get_repo_owner()
-            repo = org.get_repo(repo_name)
-            return self._get_template(repo, ref, with_meta)
-        except UnknownObjectException:
-            logger.warn("Repo %ss does not exist", repo_name)
+            repos = org.get_repos()
+            template_repo = None
+            for repo in repos:
+                if str(repo.id) == str(template_id):
+                    template_repo = repo
+                    break
+            if template_repo:
+                return self._get_template(template_repo, ref, with_meta)
         except GithubException:
             logger.error("Unexpected error getting template from repo %s",
                          repo.clone_url, exc_info=True)
@@ -96,12 +100,15 @@ class GithubManager(TemplateManager):
         try:
             template = self._get_file_from_repo(repo, ref, self._template_file)
             if template:
-                rid = "%s:%s" % (str(repo.id), ref)
+                template.update({
+                    'id': str(repo.id),
+                    'version': ref
+                })
                 if with_meta:
                     metadata = self._get_file_from_repo(repo, ref,
                                                         self._metadata_file)
                     template.update(metadata)
-                return {rid: template}
+                return {str(repo.id): template}
         except GithubException:
             logger.error("Unexpected error getting template from repo %s",
                          repo.clone_url, exc_info=True)

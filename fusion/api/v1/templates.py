@@ -41,16 +41,20 @@ class TemplateController(object):
         Gets all templates
         """
         with_meta = True if 'with_meta' in req.params else False
-        tag = self._options.github.default_tag
-        return self._manager.get_templates([tag], with_meta)
+        default_version = self._options.github.default_version
+        return self._manager.get_templates([default_version], with_meta)
 
-    def get_template(self, req, template_name):
+    def get_template(self, req, template_id):
         """
         Get template
         """
+        default_version = self._options.github.default_version
         with_meta = True if 'with_meta' in req.params else False
-        tag = self._options.github.default_tag
-        template = self._manager.get_template(template_name, tag, with_meta)
+        version = (req.params['version'] if 'version' in req.params
+                   else default_version)
+
+        template = self._manager.get_template(template_id, version,
+                                              with_meta)
         if not template:
             return exc.HTTPNotFound()
         return template
@@ -63,4 +67,3 @@ def create_resource(options):
     deserializer = wsgi.JSONRequestDeserializer()
     serializer = wsgi.JSONResponseSerializer()
     return wsgi.Resource(TemplateController(options), deserializer, serializer)
-

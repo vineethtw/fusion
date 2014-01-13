@@ -16,16 +16,12 @@ class API(wsgi.Router):
         with mapper.submapper(controller=templates_resource) as \
                 template_mapper:
             # Template handling
-            template_mapper.connect("get_catalog",
-                                    "/templates/get_catalog",
-                                    action="get_catalog",
-                                    conditions={'method': 'GET'})
             template_mapper.connect("get_templates",
                                     "/templates",
                                     action="get_templates",
                                     conditions={'method': 'GET'})
             template_mapper.connect("get_template",
-                                    "/templates/{template_name}",
+                                    "/templates/{template_id}",
                                     action="get_template",
                                     conditions={'method': 'GET'})
 
