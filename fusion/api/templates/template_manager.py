@@ -57,7 +57,7 @@ class GithubManager(TemplateManager):
         return self.__str__()
 
     def get_catalog(self):
-        tag = self._github_options.default_tag
+        tag = self._github_options.default_version
         return TemplateCatalog(self.get_templates([tag], False))
 
     @cache.Cache(store=TEMPLATES, backing_store=MEMCACHE)
