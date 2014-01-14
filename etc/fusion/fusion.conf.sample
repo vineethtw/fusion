@@ -23,6 +23,8 @@ organization=heat-templates
 template_file=heat.template
 metadata_file=heat.metadata
 default_version=master
+username="githubusername"
+password="githubpassword"
 
 [proxy]
 heat_host=""
