@@ -26,7 +26,7 @@ if __name__ == '__main__':
         config.readfp(open('/etc/fusion/fusion.conf'))
         sql_connection = config.get('database', 'connection')
     except Exception:
-        sql_connection = 'mysql://root@localhost/fusion'
+        sql_connection = 'mysql://fusion:fusion@localhost/fusion'
 
     try:
         main(url=sql_connection, debug='False', repository=migrate_repo_path)
