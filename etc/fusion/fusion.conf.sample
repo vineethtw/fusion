@@ -25,9 +25,13 @@ metadata_file=heat.metadata
 default_version=master
 
 [proxy]
+heat_host=""
 heat_protocol=https
 
 [cache]
 default_timeout=3600
 cache_root="/var/local/fusion/cache"
 memcache_servers="127.0.0.1"
+
+[database]
+connection=mysql://dbuser:password@localhost/fusion
