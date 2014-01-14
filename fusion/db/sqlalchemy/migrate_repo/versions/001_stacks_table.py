@@ -1,5 +1,4 @@
 from sqlalchemy import *
-from migrate import *
 
 meta = MetaData()
 
@@ -10,6 +9,7 @@ stacks = Table(
     Column('stack_id', String(36)),
     Column('supported', Boolean)
 )
+
 
 def upgrade(migrate_engine):
     meta.bind = migrate_engine
