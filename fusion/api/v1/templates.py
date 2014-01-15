@@ -19,8 +19,7 @@ Templates endpoint for fusion v1 ReST API.
 from webob import exc
 
 from fusion.api.templates import template_manager as managers
-from fusion.common import wsgi, environment_format, template_format
-from fusion.common import urlfetch
+from fusion.common import wsgi
 from fusion.openstack.common import log as logging
 
 logger = logging.getLogger(__name__)

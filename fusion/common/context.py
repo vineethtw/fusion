@@ -15,11 +15,11 @@
 
 from oslo.config import cfg
 
-from fusion.openstack.common import local
 from fusion.common import exception
 from fusion.common import wsgi
 from fusion.openstack.common import context
 from fusion.openstack.common import importutils
+from fusion.openstack.common import local
 from fusion.openstack.common import uuidutils
 
 
