@@ -3,7 +3,7 @@ import yaml
 
 from eventlet import greenpool
 import github
-from github import GithubException, UnknownObjectException
+from github import GithubException
 
 from fusion.common import cache
 from fusion.common.cache_backing_store import MEMCACHE

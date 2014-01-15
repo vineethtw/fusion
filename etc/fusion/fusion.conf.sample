@@ -1,13 +1,6 @@
 [DEFAULT]
-
-#
-# Options defined in fusion.common.config
-#
-# Name of the engine node. This can be an opaque identifier.It
-# is not necessarily a hostname, FQDN, or IP address. (string
-# value)
-#host=fusion
-
+log_dir=/var/log/fusion
+log_file=fusion.log
 
 [fusion_api]
 # Address to bind the server.  Useful when selecting a
