@@ -1,10 +1,8 @@
 import cPickle as pickle
-import json
 import os
 import pylibmc
 import redis
 
-from fusion.common.timeutils import json_handler
 from fusion.openstack.common import log as logging
 from oslo.config import cfg
 from redis.exceptions import ConnectionError
