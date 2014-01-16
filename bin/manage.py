@@ -18,8 +18,13 @@ from migrate.versioning.shell import main
 
 if __name__ == '__main__':
     import os.path
-    migrate_repo_path = os.path.join(os.path.dirname(__file__),
-                                     "../fusion/db/sqlalchemy/migrate_repo")
+    import sys
+    for path in sys.path:
+        migrate_repo_path = os.path.join(path, 'fusion', 'db', 'sqlalchemy',
+                                         'migrate_repo')
+        if os.path.exists(migrate_repo_path):
+            break
+    
     config = ConfigParser.SafeConfigParser()
     try:
         config = ConfigParser.SafeConfigParser()
