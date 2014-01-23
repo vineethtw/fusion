@@ -41,7 +41,8 @@ class TemplateController(object):
         """
         with_meta = True if 'with_meta' in req.params else False
         default_version = self._options.github.default_version
-        return self._manager.get_templates([default_version], with_meta)
+        return {"templates": self._manager.get_templates([default_version],
+                                                 with_meta)}
 
     def get_template(self, req, template_id):
         """
@@ -56,7 +57,7 @@ class TemplateController(object):
                                               with_meta)
         if not template:
             return exc.HTTPNotFound()
-        return template
+        return {"template": template}
 
 
 def create_resource(options):

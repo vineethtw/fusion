@@ -68,7 +68,7 @@ class GithubManager(TemplateManager):
         :param with_meta: include meta info or not
         :return:
         """
-        templates = {}
+        templates = []
         org = self._get_repo_owner()
         repos = org.get_repos()
         pool = greenpool.GreenPile()
@@ -77,7 +77,7 @@ class GithubManager(TemplateManager):
                 pool.spawn(self._get_template, repo, ref, with_meta)
         for result in pool:
             if result:
-                templates.update(result)
+                templates.append(result)
         return templates
 
     @cache.Cache(store=TEMPLATES, backing_store=MEMCACHE)
@@ -108,7 +108,7 @@ class GithubManager(TemplateManager):
                     metadata = self._get_file_from_repo(repo, ref,
                                                         self._metadata_file)
                     template.update(metadata)
-                return {str(repo.id): template}
+                return template
         except GithubException:
             logger.error("Unexpected error getting template from repo %s",
                          repo.clone_url, exc_info=True)

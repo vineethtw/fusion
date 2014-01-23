@@ -39,10 +39,10 @@ class GithubManagerTest(unittest.TestCase):
                              metadata_file="heat.metadata",
                              template_file="heat.template"))
 
-        expected_templates = {
-            "1234": yaml.load(redis_template),
-            "2345": yaml.load(wordpress_template)
-        }
+        expected_templates = [
+            yaml.load(redis_template),
+            yaml.load(wordpress_template)
+        ]
 
         manager = managers.GithubManager(mock_options)
         templates = manager.get_templates(['stable'], False)
@@ -106,10 +106,10 @@ class GithubManagerTest(unittest.TestCase):
         redis = yaml.load(redis_template)
         redis.update(yaml.load(redis_metadata))
 
-        expected_templates = {
-            "1234": redis,
-            "2345": yaml.load(wordpress_template)
-        }
+        expected_templates = [
+            redis,
+            yaml.load(wordpress_template)
+        ]
 
         manager = managers.GithubManager(mock_options)
         templates = manager.get_templates(['stable'], True)
@@ -169,7 +169,7 @@ class GithubManagerTest(unittest.TestCase):
         manager = managers.GithubManager(mock_options)
         template = manager.get_template("1234", "stable", True)
 
-        self.assertEqual(template, {"1234": redis_template})
+        self.assertEqual(template, redis_template)
         get_calls = [
             mock.call("heat.template", ref="stable"),
             mock.call("heat.metadata", ref="stable"),
@@ -210,7 +210,7 @@ class GithubManagerTest(unittest.TestCase):
         manager = managers.GithubManager(mock_options)
         template = manager.get_template(1234, "stable", False)
 
-        self.assertEqual(template, {"1234": redis_template})
+        self.assertEqual(template, redis_template)
         self.assertTrue(mock_get_client.called)
         mock_repo.get_file_contents.assert_called_once_with("heat.template",
                                                             ref="stable")
